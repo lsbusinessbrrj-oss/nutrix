@@ -5,6 +5,9 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  // Hash da senha (bcrypt) para login por e-mail próprio (fora do Manus).
+  // Nulo para contas criadas via Google/OAuth.
+  passwordHash: varchar("passwordHash", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),

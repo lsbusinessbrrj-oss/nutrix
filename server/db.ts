@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { drizzle } from "drizzle-orm/mysql2";
 import { achievements, dietPlans, payments, streakDays, supportMessages, userFoodSelections, users, workoutPlans } from "../drizzle/schema";
 import type { InsertUser } from "../drizzle/schema";
@@ -101,6 +102,36 @@ export async function updateUserProfile(userId: number, data: Partial<typeof use
   const db = await getDb();
   if (!db) return;
   await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+// --- Autenticação própria (e-mail/senha) ---
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createLocalUser(params: {
+  email: string;
+  passwordHash: string;
+  name?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const openId = `local:${nanoid()}`;
+  await db.insert(users).values({
+    openId,
+    email: params.email,
+    passwordHash: params.passwordHash,
+    name: params.name ?? null,
+    loginMethod: "password",
+    lastSignedIn: new Date(),
+  });
+  const created = await getUserByOpenId(openId);
+  if (!created) throw new Error("Falha ao criar usuário");
+  return created;
 }
 
 // Diet Plans

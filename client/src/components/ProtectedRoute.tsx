@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
@@ -15,7 +14,7 @@ export default function ProtectedRoute({ component: Component, adminOnly = false
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      startLogin();
+      navigate("/login");
     }
     if (!loading && isAuthenticated && adminOnly && user?.role !== "admin") {
       navigate("/home");
