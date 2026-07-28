@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1785239774002,
+      "tag": "0000_material_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1785239998888,
+      "tag": "0001_jazzy_blackheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1785248750910,
+      "tag": "0002_panoramic_the_santerians",
+      "breakpoints": true
+    }
+  ]
+}
