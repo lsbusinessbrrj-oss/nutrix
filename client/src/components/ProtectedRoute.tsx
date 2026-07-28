@@ -25,7 +25,7 @@ export default function ProtectedRoute({ component: Component, adminOnly = false
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F3F4F6]">
         <div className="flex flex-col items-center gap-3">
-          <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="w-16 h-16 rounded-full object-cover shadow" />
+          <img src="/nutrix-logo.jpeg" alt="NutriX" className="w-16 h-16 rounded-full object-cover shadow" />
           <Loader2 className="w-6 h-6 animate-spin text-[#43A047]" />
           <span className="text-sm text-gray-500">Carregando...</span>
         </div>

@@ -1,8 +1,7 @@
 import express from "express";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import * as db from "./db";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
+import { getStripe } from "./lib/stripe";
 
 export function registerStripeWebhook(app: express.Application) {
   app.post(
@@ -14,7 +13,7 @@ export function registerStripeWebhook(app: express.Application) {
 
       let event: Stripe.Event;
       try {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        event = getStripe().webhooks.constructEvent(req.body, sig, webhookSecret);
       } catch (err: any) {
         console.error("[Webhook] Signature verification failed:", err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);

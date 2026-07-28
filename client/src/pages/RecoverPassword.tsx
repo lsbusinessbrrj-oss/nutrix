@@ -11,7 +11,7 @@ export default function RecoverPassword() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#F3F4F6" }}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
         <div className="flex flex-col items-center mb-6">
-          <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="h-16 w-16 rounded-full object-cover mb-3 shadow" />
+          <img src="/nutrix-logo.jpeg" alt="NutriX" className="h-16 w-16 rounded-full object-cover mb-3 shadow" />
           <h1 className="font-montserrat text-xl font-bold" style={{ color: "#1B5E20" }}>Recuperar senha</h1>
           <p className="text-sm text-gray-500 mt-1 text-center">Digite seu email para receber o link de recuperação</p>
         </div>

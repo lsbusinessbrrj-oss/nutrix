@@ -37,7 +37,7 @@ export default function Signup() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#F3F4F6" }}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
         <div className="flex flex-col items-center mb-6">
-          <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="h-20 w-20 rounded-full object-cover mb-3 shadow" />
+          <img src="/nutrix-logo.jpeg" alt="NutriX" className="h-20 w-20 rounded-full object-cover mb-3 shadow" />
           <h1 className="font-montserrat text-2xl font-bold" style={{ color: "#1B5E20" }}>Criar conta</h1>
           <p className="text-sm text-gray-500 mt-1">Comece sua jornada NutriX</p>
         </div>

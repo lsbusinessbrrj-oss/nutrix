@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-[#1B5E20] text-white flex flex-col shadow-xl">
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="h-10 w-10 rounded-full object-cover border-2 border-white/30" />
+          <img src="/nutrix-logo.jpeg" alt="NutriX" className="h-10 w-10 rounded-full object-cover border-2 border-white/30" />
           <div>
             <p className="font-extrabold text-lg leading-tight">
               Nutri<span className="text-[#E53935]">X</span>

@@ -27,7 +27,7 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
         <Link href="/home" className="flex items-center gap-2">
-          <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="h-9 w-9 rounded-full object-cover" />
+          <img src="/nutrix-logo.jpeg" alt="NutriX" className="h-9 w-9 rounded-full object-cover" />
           <span className="font-montserrat font-800 text-lg" style={{ color: "#1B5E20" }}>
             Nutri<span style={{ color: "#E53935" }}>X</span>
           </span>

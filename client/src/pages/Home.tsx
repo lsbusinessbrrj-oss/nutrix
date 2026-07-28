@@ -272,7 +272,7 @@ export default function Home() {
           {/* Logo */}
           <div className="flex justify-center mb-4">
             <img
-              src="/manus-storage/nutrix-logo-new_2a35045d.jpeg"
+              src="/nutrix-logo.jpeg"
               alt="NutriX"
               className="w-28 h-28 rounded-full object-cover shadow-md border-4 border-white ring-2 ring-[#43A047]/30"
             />

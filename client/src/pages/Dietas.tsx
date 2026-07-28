@@ -59,7 +59,7 @@ export default function Dietas() {
                 Olá, {firstName}! 👋
               </h1>
             </div>
-            <img src="/manus-storage/nutrix-logo-new_2a35045d.jpeg" alt="NutriX" className="h-12 w-12 rounded-full object-cover shadow" />
+            <img src="/nutrix-logo.jpeg" alt="NutriX" className="h-12 w-12 rounded-full object-cover shadow" />
           </div>
 
           {/* Streak banner */}

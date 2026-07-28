@@ -1,12 +1,11 @@
 import { z } from "zod";
-import Stripe from "stripe";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
+import { getStripe } from "../lib/stripe";
 
 export const paymentRouter = router({
   createCheckout: protectedProcedure.mutation(async ({ ctx }) => {
+    const stripe = getStripe();
     const origin = (ctx.req.headers.origin as string) ?? "http://localhost:3000";
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
