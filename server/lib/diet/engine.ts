@@ -57,16 +57,10 @@ const AJUSTE: Record<Objetivo, number> = {
   maintenance: 0,
 };
 
-// Proteína (g/kg de peso) por objetivo — o que garante a "proteína exata".
-const PROTEINA_KG: Record<Objetivo, number> = {
-  weight_loss: 2.0,
-  definition: 2.2,
-  muscle_gain: 2.0,
-  health: 1.6,
-  maintenance: 1.8,
-};
-
-const GORDURA_KG = 0.9;
+// Parâmetros da planilha da nutricionista (NUTRIX - BASE - REV 1):
+// proteína média 1,8 g/kg (faixa 1,6–2,0) e gordura em 30% das calorias.
+const PROTEINA_KG_MEDIA = 1.8;
+const GORDURA_PCT_KCAL = 0.3;
 
 export function calcularTMB(sexo: Sexo, peso: number, altura: number, idade: number): number {
   const base = 10 * peso + 6.25 * altura - 5 * idade;
@@ -76,15 +70,15 @@ export function calcularTMB(sexo: Sexo, peso: number, altura: number, idade: num
 export function calcularMetas(p: PerfilNutri): Metas {
   const tmb = calcularTMB(p.sexo, p.peso, p.altura, p.idade);
   const tdee = tmb * (FATOR_ATIVIDADE[p.atividade] ?? 1.55);
-  let calorias = tdee * (1 + (AJUSTE[p.objetivo] ?? 0));
-
-  // Piso de segurança: nunca abaixo da TMB nem de um mínimo por sexo.
+  // META = GET × (1 − déficit), como na planilha (déficit padrão 20%),
+  // com um piso absoluto de segurança (app automático).
   const minimo = p.sexo === "male" ? 1500 : 1200;
-  calorias = Math.max(calorias, tmb, minimo);
+  const calorias = Math.max(tdee * (1 + (AJUSTE[p.objetivo] ?? 0)), minimo);
 
-  const proteinaPorKg = PROTEINA_KG[p.objetivo] ?? 1.8;
+  // Proteína 1,8 g/kg; gordura 30% das calorias; carboidrato = restante.
+  const proteinaPorKg = PROTEINA_KG_MEDIA;
   const proteinaG = proteinaPorKg * p.peso;
-  const gorduraG = GORDURA_KG * p.peso;
+  const gorduraG = (calorias * GORDURA_PCT_KCAL) / 9;
   const kcalRestante = Math.max(calorias - proteinaG * 4 - gorduraG * 9, 0);
   const carboidratoG = kcalRestante / 4;
 

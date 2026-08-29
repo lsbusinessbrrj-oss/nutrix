@@ -9,11 +9,20 @@ describe("engine — cálculo de calorias e macros", () => {
   it("TMB Mifflin-St Jeor (feminino)", () => {
     expect(Math.round(calcularTMB("female", 70, 165, 30))).toBe(1420);
   });
-  it("emagrecer aplica déficit de 20% e proteína 2 g/kg", () => {
+  it("emagrecer: déficit 20%, proteína 1,8 g/kg, gordura 30% kcal", () => {
     const m = calcularMetas({ sexo: "male", peso: 80, altura: 180, idade: 30, objetivo: "weight_loss", atividade: "moderado" });
     expect(m.tdee).toBe(2759);
     expect(m.calorias).toBe(2207);
-    expect(m.proteinaG).toBe(160);
+    expect(m.proteinaG).toBe(144); // 1,8 × 80
+  });
+
+  it("bate EXATAMENTE com a planilha da nutri (Caio 88kg/1,71m/28a)", () => {
+    const m = calcularMetas({ sexo: "male", peso: 88, altura: 171, idade: 28, objetivo: "weight_loss", atividade: "moderado" });
+    expect(m.tmb).toBe(1814);
+    expect(m.calorias).toBe(2249);
+    expect(m.proteinaG).toBe(158);
+    expect(m.gorduraG).toBe(75);
+    expect(m.carboidratoG).toBe(235);
   });
   it("nunca prescreve abaixo do mínimo de segurança", () => {
     const m = calcularMetas({ sexo: "female", peso: 48, altura: 158, idade: 60, objetivo: "weight_loss", atividade: "sedentario" });
