@@ -8,7 +8,10 @@ const plano = gerarPlano(
   null,
   {
     cafe_manha: ["cm_pao_ovo", "cm_banana"],
+    lanche_manha: ["lm_whey", "lm_banana"],
     almoco: ["al_arroz", "al_frango_grelhado", "al_salada_alface_tomate"],
+    lanche_tarde: ["lt_pao_ovo", "lt_banana"],
+    janta: ["jt_arroz", "jt_carne_grelhada"],
   },
 );
 const pdf = await gerarPdfDieta(

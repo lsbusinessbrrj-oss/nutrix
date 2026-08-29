@@ -69,91 +69,132 @@ function montarOpcaoCliente(
   };
   const acharVeg = (pred: (a: Alimento) => boolean) => por("vegetal").find(pred) ?? filtrarPorRestricoes("vegetal", restr).find(pred);
 
-  const foods: FoodItem[] = [];
-  let kcal = 0;
-  const add = (a: Alimento, gramas: number, override?: string) => {
-    foods.push({ name: a.nome, quantity: override ?? formatarMedida(a, gramas), substituicoes: subsFor(a.nome, gramas, restr) });
-    kcal += (a.kcal * gramas) / 100;
-  };
+  // Coleta os itens (com gramas iniciais); depois normaliza os itens variáveis
+  // para bater EXATAMENTE o alvo calórico da refeição (fixos não escalam).
+  interface Ent { a: Alimento; g: number; override?: string; fixo?: boolean }
+  const ents: Ent[] = [];
+  const kOf = (e: Ent) => (e.override ? 0 : (e.a.kcal * e.g) / 100);
+  const somaVar = () => ents.reduce((s, e) => s + (e.fixo ? 0 : kOf(e)), 0);
 
   const prot = por("proteina")[0] ?? padrao("proteina", leve ? PROT_LEVE : undefined);
   if (prot) {
     const cap = leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL;
-    add(prot, arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), cap)));
+    ents.push({ a: prot, g: arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), cap)) });
   }
   const carb = por("carboidrato")[0] ?? padrao("carboidrato");
 
   if (leve) {
     const fruta = por("fruta")[0] ?? padrao("fruta");
-    if (fruta) add(fruta, fruta.gPorMedida);
+    if (fruta) ents.push({ a: fruta, g: fruta.gPorMedida });
     if (carb) {
-      const rest = Math.max(targetKcal - kcal, 0);
-      add(carb, arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 4)));
-    }
-    const faltam = targetKcal - kcal;
-    if (faltam > 60) {
-      const g2 = padrao("gordura", new Set(["Requeijão light", "Cream cheese light", "Pasta de amendoim"]));
-      if (g2) { const g = arred5(Math.min((faltam / g2.kcal) * 100, g2.gPorMedida * 3)); if (g >= 5) add(g2, g); }
+      const rest = Math.max(targetKcal - somaVar(), 0);
+      ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 4)) });
     }
   } else {
     const legume = acharVeg((a) => a.nome === "Brócolis cozido");
     const salada = acharVeg((a) => a.nome.includes("Salada"));
-    const legKcal = legume ? (legume.kcal * 100) / 100 : 0;
-    const salKcal = salada ? (salada.kcal * salada.gPorMedida) / 100 : 0;
     if (carb) {
-      const rest = Math.max(targetKcal - kcal - legKcal - salKcal, 0);
-      add(carb, arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 9)));
+      const rest = Math.max(targetKcal - somaVar(), 0);
+      ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 9)) });
     }
-    if (legume) add(legume, 100);
-    if (salada) add(salada, salada.gPorMedida, "À vontade");
+    if (legume) ents.push({ a: legume, g: 100, fixo: true });
+    if (salada) ents.push({ a: salada, g: salada.gPorMedida, override: "À vontade", fixo: true });
   }
+
+  // Normaliza os itens variáveis para o alvo calórico (a conta fecha).
+  const fixK = ents.reduce((s, e) => s + (e.fixo ? kOf(e) : 0), 0);
+  const varK = somaVar();
+  const fator = varK > 0 ? Math.max(0.35, Math.min(3, (targetKcal - fixK) / varK)) : 1;
+  for (const e of ents) if (!e.fixo) e.g = arred5(e.g * fator);
+
+  const foods: FoodItem[] = ents.map((e) => ({
+    name: e.a.nome,
+    quantity: e.override ?? formatarMedida(e.a, e.g),
+    substituicoes: subsFor(e.a.nome, e.g, restr),
+  }));
+  const kcal = ents.reduce((s, e) => s + kOf(e), 0);
   return { foods, kcal: Math.round(kcal) };
 }
 
 // ── Opção da referência ──
-function refItemGramas(it: RefItem, scale: number) { return it.livre ? 0 : it.fixo ? it.baseG : Math.round(it.baseG * scale * 10) / 10; }
-function refItemQtd(it: RefItem, scale: number, g: number): string {
+// kcal de base de uma opção, separando itens fixos (não escalam) dos variáveis.
+function kcalBaseOpcao(op: RefOpcao): { fixo: number; variavel: number } {
+  let fixo = 0, variavel = 0;
+  for (const it of op.itens) {
+    if (it.livre) continue; // "À vontade" não conta calorias
+    const k = (it.kcal100 * it.baseG) / 100;
+    if (it.fixo) fixo += k; else variavel += k;
+  }
+  return { fixo, variavel };
+}
+function refItemGramas(it: RefItem, s: number) { return it.livre ? 0 : it.fixo ? it.baseG : Math.round(it.baseG * s * 10) / 10; }
+function refItemQtd(it: RefItem, s: number, g: number): string {
   if (it.livre) return "À vontade";
-  if (it.fixo || Math.abs(scale - 1) < 0.06) return it.qtd;
+  if (it.fixo || Math.abs(s - 1) < 0.06) return it.qtd;
   const u = it.unidade === "ml" ? "ml" : "g";
   if (it.medida && it.gPorMedida) { const n = Math.max(1, Math.round(g / it.gPorMedida)); return `${n} ${pluralMedida(it.medida, n)} ou ${fmtG(g)}${u}`; }
   return `${fmtG(g)} ${u}`;
 }
-function refOpcaoToOption(op: RefOpcao, scale: number): Option {
+// Escala a gramatura de uma troca pelo mesmo fator do item (mantém a troca
+// "batendo" a nova quantidade). Ex.: item ×1,17 → "80 g" vira "94 g".
+function escalarQtdTroca(q: string, s: number): string {
+  if (Math.abs(s - 1) < 0.06 || /vontade/i.test(q)) return q;
+  const m1 = q.match(/^(\d+(?:[.,]\d+)?)\s+(.+?)\s+ou\s+(\d+(?:[.,]\d+)?)\s*(g|ml)$/i);
+  if (m1) {
+    const nOld = parseFloat(m1[1].replace(",", ".")), xOld = parseFloat(m1[3].replace(",", "."));
+    const xNew = xOld * s, perUnit = xOld / nOld;
+    const nNew = Math.max(1, Math.round(xNew / perUnit));
+    return `${nNew} ${m1[2]} ou ${Math.round(xNew)}${m1[4]}`;
+  }
+  const m2 = q.match(/^(\d+(?:[.,]\d+)?)\s*(g|ml)$/i);
+  if (m2) return `${Math.round(parseFloat(m2[1].replace(",", ".")) * s)} ${m2[2]}`;
+  return q;
+}
+
+// Escala a opção de referência para bater EXATAMENTE o alvo calórico da refeição
+// (itens fixos ficam; os variáveis absorvem a diferença). Assim toda opção de
+// uma refeição soma o mesmo valor e "a conta fecha" em qualquer escolha.
+function refOpcaoToOption(op: RefOpcao, alvoKcal: number): Option {
+  const { fixo, variavel } = kcalBaseOpcao(op);
+  const s = variavel > 0 ? Math.min(2.5, Math.max(0.4, (alvoKcal - fixo) / variavel)) : 1;
   const foods = op.itens.map((it) => {
-    const g = refItemGramas(it, scale);
-    return { name: it.name, quantity: refItemQtd(it, scale, g), substituicoes: REF_SUBS[it.name] ?? [] };
+    const g = refItemGramas(it, s);
+    const sItem = it.fixo || it.livre ? 1 : s; // troca escala junto com o item
+    const subs = (REF_SUBS[it.name] ?? []).map((x) => ({ name: x.name, quantity: escalarQtdTroca(x.quantity, sItem) }));
+    return { name: it.name, quantity: refItemQtd(it, s, g), substituicoes: subs };
   });
-  const kcal = op.itens.reduce((s, it) => s + (it.kcal100 * refItemGramas(it, scale)) / 100, 0);
+  const kcal = op.itens.reduce((acc, it) => acc + (it.kcal100 * refItemGramas(it, s)) / 100, 0);
   return { foods, kcal: Math.round(kcal), obs: op.obs };
 }
 
 export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null, selecoes?: Selecoes): PlanData {
   const metas = calcularMetas(perfil);
-  const scale = metas.calorias / REF_KCAL;
   const restr = restricoesDe(healthConditions);
 
+  // Alvo de cada refeição = objetivo diário distribuído na proporção da dieta de
+  // referência (Opção 1). A soma dos alvos = objetivo diário EXATO, então
+  // escolher qualquer opção em cada refeição sempre fecha o kcal/dia.
+  const pesoRef = REF_REFEICOES.map((ref) => { const b = kcalBaseOpcao(ref.opcoes[0]); return b.fixo + b.variavel; });
+  const totalRef = pesoRef.reduce((a, b) => a + b, 0);
+
   const meals: Meal[] = REF_REFEICOES.map((ref, mi) => {
-    const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, scale));
+    const alvo = metas.calorias * (pesoRef[mi] / totalRef); // alvo calórico da refeição
+    const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo));
     const leve = ref.key === "cafe_manha" || ref.key === "lanche_tarde";
 
     // Opção 1 = escolha do cliente (se houver); senão só as opções de referência.
     const ids = selecoes?.[ref.key] ?? [];
     const escolhidos = ids.flatMap(alimentosDoId).filter((a) => passaRestricoes(a, restr));
-    let options: Option[];
-    if (escolhidos.length) {
-      const mealBudget = refOptions[0].kcal;
-      const targetProt = Math.round(metas.proteinaG * (leve ? 0.15 : 0.3));
-      options = [montarOpcaoCliente(escolhidos, mealBudget, targetProt, leve, restr, mi), ...refOptions];
-    } else {
-      options = refOptions;
-    }
-    return { name: ref.name, time: ref.time, calories: options[0].kcal, protein: 0, options };
+    const targetProt = Math.round(metas.proteinaG * (leve ? 0.15 : 0.3));
+    let options: Option[] = escolhidos.length
+      ? [montarOpcaoCliente(escolhidos, alvo, targetProt, leve, restr, mi), ...refOptions]
+      : refOptions;
+    options = options.slice(0, 3); // no máximo 3 opções por refeição (1, 2 e 3)
+    return { name: ref.name, time: ref.time, calories: Math.round(alvo), protein: 0, options };
   });
 
-  const totalReal = meals.reduce((s, m) => s + m.calories, 0);
   return {
-    totalCalories: totalReal, proteinTarget: metas.proteinaG, waterMl: metas.aguaMl, meals,
+    totalCalories: Math.round(metas.calorias), proteinTarget: metas.proteinaG, waterMl: metas.aguaMl, meals,
     summary: { tmb: metas.tmb, tdee: metas.tdee, proteinPerKg: metas.proteinaPorKg, carbs: metas.carboidratoG, fat: metas.gorduraG, waterMl: metas.aguaMl },
     orientacao: orientacoes(metas.aguaMl),
   };

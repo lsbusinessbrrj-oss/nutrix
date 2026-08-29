@@ -129,9 +129,12 @@ function meta(v: string, l: string) {
 function dado(lbl: string, val: string) {
   return h(View, { style: s.dado }, h(Text, { style: s.dadoLbl }, lbl), h(Text, { style: s.dadoVal }, val));
 }
-function itemRow(name: string, qtd: string, subs: { name: string }[]) {
+function itemRow(name: string, qtd: string, subs: { name: string; quantity?: string }[]) {
   const els: any[] = [h(View, { style: s.itemRow, key: "r" }, h(Text, { style: s.itemName }, name), h(Text, { style: s.itemQtd }, qtd))];
-  if (subs.length) els.push(h(Text, { style: s.subLine, key: "s" }, "Troca por: " + subs.map((x) => x.name).slice(0, 5).join(", ")));
+  if (subs.length) {
+    const txt = subs.slice(0, 5).map((x) => (x.quantity ? `${x.name} ${x.quantity}` : x.name)).join("; ");
+    els.push(h(Text, { style: s.subLine, key: "s" }, "Troca por: " + txt));
+  }
   return h(View, { key: name + qtd, wrap: false }, els);
 }
 
@@ -170,7 +173,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     ),
 
     h(View, { style: s.metasCard },
-      h(Text, { style: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 4 } }, "Metas diárias"),
+      h(Text, { style: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 4 } }, "Objetivo diário"),
       h(View, { style: s.metaRow },
         meta(`${plano.totalCalories}`, "kcal/dia"),
         meta(`${plano.proteinTarget} g`, "proteína"),
