@@ -32,7 +32,7 @@ const CAFE_OP1: RefOpcao = {
   itens: [
     I("Ovo de galinha cozido", "2 unidades médias ou 100g", 100, 155, 13, { medida: "unidade média", gPorMedida: 50 }),
     I("Pão francês", "1 unidade ou 50g", 50, 300, 8, { medida: "unidade", gPorMedida: 50 }),
-    I("Requeijão Cremoso Light", "15 g", 15, 160, 11, { fixo: true }),
+    I("Requeijão Cremoso Light", "15 g", 15, 160, 11, {}),
     I("Banana prata", "1 unidade média ou 42,3g", 42.3, 98, 1.3, { medida: "unidade média", gPorMedida: 42.3 }),
     I("Aveia em flocos", "1 colher de sopa cheia ou 15g", 15, 389, 13.9, { medida: "colher de sopa cheia", gPorMedida: 15 }),
     I("Café", "1 xícara de chá ou 200ml", 200, 2, 0.1, { fixo: true, unidade: "ml" }),
@@ -41,7 +41,7 @@ const CAFE_OP1: RefOpcao = {
 const CAFE_OP2: RefOpcao = {
   itens: [
     I("Whey protein concentrado", "1 medidor ou 30g", 30, 400, 80, { medida: "medidor", gPorMedida: 30 }),
-    I("Leite semidesnatado", "200 ml", 200, 42, 3.3, { fixo: true, unidade: "ml" }),
+    I("Leite semidesnatado", "200 ml", 200, 42, 3.3, { unidade: "ml" }),
     I("Banana prata", "1 unidade média ou 65g", 65, 98, 1.3, { medida: "unidade média", gPorMedida: 65 }),
     I("Aveia em flocos", "2 colheres de sopa cheias ou 30g", 30, 389, 13.9, { medida: "colher de sopa cheia", gPorMedida: 15 }),
   ],
@@ -67,7 +67,7 @@ const TARDE_OP1: RefOpcao = {
   itens: [
     I("Ovo de galinha cozido", "2 unidades médias ou 100g", 100, 155, 13, { medida: "unidade média", gPorMedida: 50 }),
     I("Pão francês", "1 unidade ou 50g", 50, 300, 8, { medida: "unidade", gPorMedida: 50 }),
-    I("Requeijão Cremoso Light", "15 g", 15, 160, 11, { fixo: true }),
+    I("Requeijão Cremoso Light", "15 g", 15, 160, 11, {}),
     I("Banana prata", "1 unidade média ou 42,3g", 42.3, 98, 1.3, { medida: "unidade média", gPorMedida: 42.3 }),
     I("Café", "1 xícara de chá ou 200ml", 200, 2, 0.1, { fixo: true, unidade: "ml" }),
   ],
@@ -75,7 +75,7 @@ const TARDE_OP1: RefOpcao = {
 const TARDE_OP2: RefOpcao = {
   itens: [
     I("Whey protein concentrado", "40 g", 40, 400, 80, { medida: "medidor", gPorMedida: 30 }),
-    I("Leite semidesnatado", "200 ml", 200, 42, 3.3, { fixo: true, unidade: "ml" }),
+    I("Leite semidesnatado", "200 ml", 200, 42, 3.3, { unidade: "ml" }),
     I("Banana prata", "1 unidade média ou 65g", 65, 98, 1.3, { medida: "unidade média", gPorMedida: 65 }),
     I("Aveia em flocos", "2 colheres de sopa cheias ou 30g", 30, 389, 13.9, { medida: "colher de sopa cheia", gPorMedida: 15 }),
   ],
@@ -88,7 +88,7 @@ const PRINCIPAL_OP1: RefOpcao = {
     I("Feijão preto cozido", "100 g", 100, 77, 4.5),
     I("Brócolis", "100 g", 100, 34, 2.8, { fixo: true }),
     I("Salada (alface, rúcula, tomate, pepino, cebola)", "À vontade", 0, 15, 1.5, { fixo: true, livre: true }),
-    I("Azeite de oliva", "2 colheres de sobremesa ou 10g", 10, 884, 0, { fixo: true, medida: "colher de sobremesa", gPorMedida: 5 }),
+    I("Azeite de oliva", "2 colheres de sobremesa ou 10g", 10, 884, 0, { medida: "colher de sobremesa", gPorMedida: 5 }),
   ],
   obs: "Fontes de carboidrato podem ser combinadas/substituídas mantendo a quantidade total. Legumes e verduras podem ser combinados mantendo o volume.",
 };
@@ -96,7 +96,7 @@ const PRINCIPAL_OP2: RefOpcao = {
   itens: [
     I("Patinho grelhado com molho de tomate", "150 g", 150, 219, 31),
     I("Macarrão cozido", "200 g", 200, 158, 5.8),
-    I("Azeite de oliva", "2 colheres de sobremesa ou 10g", 10, 884, 0, { fixo: true, medida: "colher de sobremesa", gPorMedida: 5 }),
+    I("Azeite de oliva", "2 colheres de sobremesa ou 10g", 10, 884, 0, { medida: "colher de sobremesa", gPorMedida: 5 }),
   ],
   obs: "Proteína grelhada/assada/refogada com pouca gordura; permitido queijo ralado em pequena quantidade.",
 };

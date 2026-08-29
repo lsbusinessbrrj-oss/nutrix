@@ -106,8 +106,12 @@ function montarOpcaoCliente(
     kcal: kOf(e), prot: e.override ? 0 : (e.a.p * e.g) / 100,
     fixo: !!e.fixo, prote: !e.fixo && !e.override && ehProteico(e.a.kcal, e.a.p),
   }));
-  const { fp, fc } = resolverEscalas(marca, targetKcal, targetProt);
-  ents.forEach((e, i) => { if (!e.fixo) e.g = arred5(e.g * (marca[i].prote ? fp : fc)); });
+  const e0 = resolverEscalas(marca, targetKcal, targetProt);
+  const fixedK = marca.reduce((a, mk) => a + (mk.fixo ? mk.kcal : 0), 0);
+  const varNow = marca.reduce((a, mk) => a + (mk.fixo ? 0 : mk.kcal * (mk.prote ? e0.fp : e0.fc)), 0);
+  const corr = varNow > 0 ? Math.max(0.6, Math.min(1.5, (targetKcal - fixedK) / varNow)) : 1;
+  const fp = e0.fp * corr, fc = e0.fc * corr;
+  ents.forEach((en, i) => { if (!en.fixo) en.g = arred5(en.g * (marca[i].prote ? fp : fc)); });
 
   const foods: FoodItem[] = ents.map((e) => ({
     name: e.a.nome,
@@ -186,7 +190,13 @@ function refOpcaoToOption(op: RefOpcao, alvoKcal: number, alvoProt: number): Opt
     it, kcal: (it.kcal100 * it.baseG) / 100, prot: (it.p100 * it.baseG) / 100,
     fixo: !!(it.fixo || it.livre), prote: !it.fixo && !it.livre && ehProteico(it.kcal100, it.p100),
   }));
-  const { fp, fc } = resolverEscalas(xs, alvoKcal, alvoProt);
+  const e = resolverEscalas(xs, alvoKcal, alvoProt);
+  // Correção final priorizando CALORIAS (regra 1): se ainda estourar/faltar, um
+  // ajuste uniforme nos itens variáveis aproxima a kcal do alvo da refeição.
+  const fixedK = xs.reduce((a, x) => a + (x.fixo ? x.kcal : 0), 0);
+  const varNow = xs.reduce((a, x) => a + (x.fixo ? 0 : x.kcal * (x.prote ? e.fp : e.fc)), 0);
+  const corr = varNow > 0 ? Math.max(0.6, Math.min(1.5, (alvoKcal - fixedK) / varNow)) : 1;
+  const fp = e.fp * corr, fc = e.fc * corr;
   const fatorDe = (x: typeof xs[number]) => (x.fixo ? 1 : x.prote ? fp : fc);
   const foods = xs.map((x) => {
     const s = fatorDe(x);
@@ -240,12 +250,52 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
     return { opcao: i + 1, kcal, protein, pctKcal: Math.round((kcal / metaKcal) * 100), pctProt: Math.round((protein / metaProt) * 100) };
   });
 
-  return {
+  const plano: PlanData = {
     totalCalories: metaKcal, proteinTarget: metaProt, waterMl: metas.aguaMl, meals,
     resumo: { linhas, metaKcal, metaProt },
     summary: { tmb: metas.tmb, tdee: metas.tdee, proteinPerKg: metas.proteinaPorKg, carbs: metas.carboidratoG, fat: metas.gorduraG, waterMl: metas.aguaMl },
     orientacao: orientacoes(metas.aguaMl),
   };
+
+  // Regra 18: validação automática antes de liberar (avisa no log se algo falhar).
+  const val = validarPlano(plano);
+  const falhas = val.filter((x) => !x.ok);
+  if (falhas.length) console.warn("[NutriX] Validação do plano — atenção:\n" + falhas.map((x) => `  • ${x.regra}: ${x.detalhe}`).join("\n"));
+  return plano;
+}
+
+export interface ValidacaoItem { regra: string; ok: boolean; detalhe: string }
+
+/** Regra 18: confere as regras obrigatórias do plano antes de gerar o PDF. */
+export function validarPlano(plano: PlanData): ValidacaoItem[] {
+  const v: ValidacaoItem[] = [];
+  const pct = (x: number, base: number) => (base > 0 ? Math.abs(x - base) / base : 0);
+
+  // Regra 2 — exatamente 3 opções.
+  const fora3 = plano.meals.filter((m) => m.options.length !== 3).map((m) => m.name);
+  v.push({ regra: "3 opções por refeição", ok: fora3.length === 0, detalhe: fora3.length ? `refeições com nº errado: ${fora3.join(", ")}` : "todas com 3 opções" });
+
+  // Regra 5/14 — toda opção com calorias e proteína calculadas.
+  const semMacro = plano.meals.some((m) => m.options.some((o) => !(o.kcal > 0) || o.protein == null));
+  v.push({ regra: "kcal e proteína calculadas", ok: !semMacro, detalhe: semMacro ? "há opção sem kcal/proteína" : "ok" });
+
+  // Regra 3 — opções da mesma refeição próximas em calorias (±12% do alvo).
+  const desK: string[] = [];
+  for (const m of plano.meals) for (const o of m.options) if (pct(o.kcal, m.calories) > 0.12) desK.push(`${m.name} (${o.kcal} vs ${m.calories})`);
+  v.push({ regra: "opções equivalentes em calorias (±12%)", ok: desK.length === 0, detalhe: desK.length ? desK.join("; ") : "ok" });
+
+  // Regra 8 — toda substituição com quantidade.
+  let subSemQtd = 0;
+  for (const m of plano.meals) for (const o of m.options) for (const f of o.foods) for (const s of f.substituicoes) if (!s.quantity) subSemQtd++;
+  v.push({ regra: "substituições com quantidade", ok: subSemQtd === 0, detalhe: subSemQtd ? `${subSemQtd} troca(s) sem quantidade` : "ok" });
+
+  // Regra 14/17 — somatório diário de cada opção próximo da meta (kcal ±5%, proteína ±8%).
+  for (const l of plano.resumo.linhas) {
+    const okK = pct(l.kcal, plano.resumo.metaKcal) <= 0.05;
+    const okP = pct(l.protein, plano.resumo.metaProt) <= 0.08;
+    v.push({ regra: `Dia Opção ${l.opcao} próximo da meta`, ok: okK && okP, detalhe: `${l.kcal} kcal (${l.pctKcal}%) · ${l.protein} g prot (${l.pctProt}%)` });
+  }
+  return v;
 }
 
 export function restricoesDe(healthConditions?: string | null): Set<Restricao> {
