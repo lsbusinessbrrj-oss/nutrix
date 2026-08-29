@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import React from "react";
-import { Document, Page, Text, View, StyleSheet, Image, Svg, Circle, Path, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Svg, Circle, Ellipse, Path, G, renderToBuffer } from "@react-pdf/renderer";
 import type { PlanData } from "../diet/generatePlan";
 
 const h = React.createElement;
@@ -52,19 +52,52 @@ const s = StyleSheet.create({
   rodape: { position: "absolute", bottom: 18, left: 32, right: 32, fontSize: 7.5, color: C.cinza, textAlign: "center", borderTop: `0.5 solid ${C.borda}`, paddingTop: 6 },
 });
 
-// Fundo com desenhos (frutas, folha, gota) em baixa opacidade.
+// Ícones de alimentos (desenhados em ~26pt na origem) para o fundo do PDF.
+const APPLE = "#E53935", BANANA = "#EAB308", BROC = "#22a35a", CARROT = "#F97316", FISH = "#64748B", WATER = "#38BDF8", LEAF = "#16a34a";
+const ICONES: (() => any[])[] = [
+  () => [ // maçã
+    h(Circle, { key: 1, cx: 9, cy: 15, r: 7, fill: APPLE }),
+    h(Circle, { key: 2, cx: 16, cy: 15, r: 7, fill: APPLE }),
+    h(Path, { key: 3, d: "M12 6 C13 4 16 4 17 6 C15 8 13 8 12 6 Z", fill: LEAF }),
+  ],
+  () => [ // banana
+    h(Path, { key: 1, d: "M5 9 C10 22 20 22 25 12 C22 20 12 20 8 9 Z", fill: BANANA }),
+  ],
+  () => [ // brócolis
+    h(Circle, { key: 1, cx: 9, cy: 9, r: 5, fill: BROC }),
+    h(Circle, { key: 2, cx: 16, cy: 9, r: 5, fill: BROC }),
+    h(Circle, { key: 3, cx: 12, cy: 5, r: 5, fill: BROC }),
+    h(Path, { key: 4, d: "M10 12 L15 12 L14 22 L11 22 Z", fill: "#4d7c0f" }),
+  ],
+  () => [ // peixe
+    h(Ellipse, { key: 1, cx: 12, cy: 14, rx: 10, ry: 6, fill: FISH }),
+    h(Path, { key: 2, d: "M22 14 L28 9 L28 19 Z", fill: FISH }),
+    h(Circle, { key: 3, cx: 8, cy: 12, r: 1.2, fill: "#ffffff" }),
+  ],
+  () => [ // gota d'água
+    h(Path, { key: 1, d: "M13 4 C7 13 7 20 13 22 C19 20 19 13 13 4 Z", fill: WATER }),
+  ],
+  () => [ // cenoura
+    h(Path, { key: 1, d: "M7 9 L17 9 L12 26 Z", fill: CARROT }),
+    h(Path, { key: 2, d: "M9 9 L7 3 M12 9 L12 2 M15 9 L17 3", stroke: LEAF, strokeWidth: 1.6, fill: "none" }),
+  ],
+];
+
+// Fundo: grade organizada de alimentos, suave (opacidade 0,10), em toda página.
 function fundo() {
-  return h(Svg, { fixed: true, style: { position: "absolute", top: 0, left: 0, width: 595, height: 842 }, viewBox: "0 0 595 842" },
-    // maçãs / laranjas (círculos)
-    h(Circle, { cx: 70, cy: 300, r: 34, fill: C.verde2, opacity: 0.05 }),
-    h(Circle, { cx: 520, cy: 210, r: 40, fill: C.amarelo, opacity: 0.05 }),
-    h(Circle, { cx: 500, cy: 620, r: 30, fill: C.verde2, opacity: 0.05 }),
-    h(Circle, { cx: 90, cy: 720, r: 26, fill: C.amarelo, opacity: 0.05 }),
-    // folhas (elipses via path) e gotas d'água
-    h(Path, { d: "M300 120 q40 -30 80 0 q-40 30 -80 0 z", fill: C.verde2, opacity: 0.04 }),
-    h(Path, { d: "M540 470 c-14 18 -14 32 0 40 c14 -8 14 -22 0 -40 z", fill: C.agua, opacity: 0.06 }),
-    h(Path, { d: "M60 470 c-12 16 -12 28 0 36 c12 -8 12 -20 0 -36 z", fill: C.agua, opacity: 0.06 }),
-  );
+  const cells: any[] = [];
+  let idx = 0;
+  for (let row = 0; row < 8; row++) {
+    const yy = 60 + row * 100;
+    const offset = row % 2 ? 60 : 0;
+    for (let col = 0; col < 5; col++) {
+      const xx = 30 + offset + col * 120;
+      if (xx > 560) continue;
+      cells.push(h(G, { key: `${row}-${col}`, transform: `translate(${xx} ${yy})`, opacity: 0.1 }, ICONES[idx % ICONES.length]()));
+      idx++;
+    }
+  }
+  return h(Svg, { fixed: true, style: { position: "absolute", top: 0, left: 0, width: 595, height: 842 }, viewBox: "0 0 595 842" }, cells);
 }
 
 function rodape() {
