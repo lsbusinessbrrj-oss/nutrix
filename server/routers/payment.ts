@@ -2,8 +2,37 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { getStripe } from "../lib/stripe";
+import { criarPix, statusPagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
+import { entregarDieta } from "../lib/delivery";
 
 export const paymentRouter = router({
+  // ── Mercado Pago (Pix) ──
+  criarPix: protectedProcedure.mutation(async ({ ctx }) => {
+    const email = ctx.user.email ?? "cliente@nutrix.com.br";
+    const pix = await criarPix(email, ctx.user.name ?? "Cliente");
+    await db.createPayment(ctx.user.id, pix.paymentId);
+    return { ...pix, preco: PRECO_DIETA };
+  }),
+
+  // Confirma um Pix real (consulta o status no Mercado Pago) e, se aprovado,
+  // libera e entrega a dieta.
+  confirmarPix: protectedProcedure
+    .input(z.object({ paymentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const status = await statusPagamento(input.paymentId);
+      if (status !== "approved") return { aprovado: false, status };
+      await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true });
+      const entrega = await entregarDieta(ctx.user.id);
+      return { aprovado: true, status, entrega };
+    }),
+
+  // Simula a aprovação do pagamento (para testes): libera e entrega a dieta.
+  simularAprovacao: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true });
+    const entrega = await entregarDieta(ctx.user.id);
+    return { aprovado: true, entrega };
+  }),
+
   createCheckout: protectedProcedure.mutation(async ({ ctx }) => {
     const stripe = getStripe();
     const origin = (ctx.req.headers.origin as string) ?? "http://localhost:3000";
