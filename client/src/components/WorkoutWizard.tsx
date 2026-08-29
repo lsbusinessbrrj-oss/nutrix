@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { ChevronRight, ChevronLeft, Dumbbell, Home, Zap, Calendar, Target } from "lucide-react";
+import { ChevronRight, ChevronLeft, Dumbbell, Home, Zap, Clock } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -29,37 +29,48 @@ export default function WorkoutWizard() {
   const plan = generatedPlan ?? (existingPlan?.planData as any);
 
   if (plan) {
+    const reset = () => { setGeneratedPlan(null); setStep(1); setLocation(null); setLevel(null); setDays(null); setMuscles([]); setGoal(""); };
+    const dias = plan.days ?? [];
+    const today = new Date();
+    const sunday = new Date(today); sunday.setDate(today.getDate() - today.getDay());
+    const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(sunday); d.setDate(sunday.getDate() + i); return d; });
+    const dowLetters = ["D", "S", "T", "Q", "Q", "S", "S"];
+
     return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-800 font-montserrat">Seu Plano de Treino 💪</h3>
-            <button onClick={() => { setGeneratedPlan(null); setStep(1); setLocation(null); setLevel(null); setDays(null); setMuscles([]); setGoal(""); }}
-              className="text-xs text-[#43A047] hover:underline">Refazer</button>
-          </div>
-          <p className="text-xs text-gray-500 mb-4">{plan.summary}</p>
-          <div className="space-y-3">
-            {plan.days?.map((d: any, i: number) => (
-              <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "#E8F5E9" }}>
-                  <span className="font-semibold text-sm" style={{ color: "#1B5E20" }}>{d.day}</span>
-                  <span className="text-xs text-gray-500">{d.focus}</span>
-                </div>
-                <div className="px-4 py-3 space-y-2">
-                  {d.exercises?.map((ex: any, j: number) => (
-                    <div key={j} className="flex items-start justify-between text-sm">
-                      <div>
-                        <span className="font-medium text-gray-800">{ex.name}</span>
-                        {ex.notes && <p className="text-xs text-gray-400">{ex.notes}</p>}
-                      </div>
-                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{ex.sets}x {ex.reps} • {ex.rest}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black text-gray-900">Meus Treinos</h2>
+          <button onClick={reset} className="text-sm font-semibold" style={{ color: "#43A047" }}>Refazer</button>
         </div>
+
+        {/* Esta Semana */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Esta Semana</h3>
+          <div className="flex gap-2 mb-4">
+            {week.map((d, i) => {
+              const isToday = d.toDateString() === today.toDateString();
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                  <span className="text-xs text-gray-400">{dowLetters[i]}</span>
+                  <span className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={isToday ? { background: "#111827", color: "white" } : { background: "#F3F4F6", color: "#6B7280" }}>
+                    {d.getDate()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between text-sm mb-1.5">
+            <span className="text-gray-600"><b className="text-gray-900">0</b> de {dias.length} treinos na semana</span>
+            <span className="text-gray-400">0%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-gray-100" />
+        </div>
+
+        {/* Cards por dia */}
+        {dias.map((d: any, i: number) => (
+          <WorkoutDayCard key={i} day={d} label={i === 0 ? "Hoje" : i === 1 ? "Amanhã" : d.day} soon={i > 0} />
+        ))}
       </div>
     );
   }
@@ -195,6 +206,45 @@ export default function WorkoutWizard() {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function WorkoutDayCard({ day, label, soon }: { day: any; label: string; soon?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const exercises = day.exercises ?? [];
+  const duration = day.durationMin ?? exercises.length * 6;
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <button onClick={() => setOpen(!open)} className="w-full">
+        <div className="flex items-center justify-between mb-2">
+          <span className="flex items-center gap-2 font-bold text-gray-900">🏋️ {label}</span>
+          <span className="flex items-center gap-1 text-sm font-semibold" style={{ color: "#43A047" }}>
+            Veja seu treino <ChevronRight size={15} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+          </span>
+        </div>
+        <p className="text-sm text-gray-400 text-left">{day.day}</p>
+        <p className="font-bold text-gray-900 text-left mb-3">{day.focus}</p>
+        <div className="flex items-center gap-5 text-sm text-gray-500">
+          <span className="flex items-center gap-1.5"><Zap size={15} style={{ color: "#F59E0B" }} /> Exercícios: <b className="text-gray-800">{exercises.length}</b></span>
+          <span className="flex items-center gap-1.5"><Clock size={15} /> Duração: <b className="text-gray-800">{duration} min</b></span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+          {exercises.map((ex: any, j: number) => (
+            <div key={j} className="flex items-start justify-between text-sm">
+              <div>
+                <span className="font-medium text-gray-800">{ex.name}</span>
+                {ex.notes && <p className="text-xs text-gray-400">{ex.notes}</p>}
+              </div>
+              <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{ex.sets}x {ex.reps} · {ex.rest}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {soon && !open && <p className="text-xs text-gray-400 mt-3">Em breve</p>}
     </div>
   );
 }
