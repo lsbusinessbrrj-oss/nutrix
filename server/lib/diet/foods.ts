@@ -1,5 +1,7 @@
 // Base de alimentos com macros (por 100 g) e medida caseira.
 // Ref.: TACO/USDA (aprox.). "g" = gramas por 1 medida caseira.
+import { ALIMENTOS_BASE, GRUPO_BASE } from "./foodsBase";
+
 export type Categoria = "proteina" | "carboidrato" | "gordura" | "vegetal" | "fruta" | "bebida";
 
 export interface Alimento {
@@ -27,7 +29,8 @@ const naoVeg = { vegetariano: false, vegano: false };
 const comLactose = { lactose: true };
 const comGluten = { gluten: true };
 
-export const ALIMENTOS: Alimento[] = [
+// Curados (usados pelo CATÁLOGO do quiz e com medidas caseiras revisadas).
+const CURADOS: Alimento[] = [
   // ── Carboidratos ──
   A("Pão de forma", "carboidrato", 250, 9, 49, 3.5, "fatia", 25, comGluten),
   A("Tapioca", "carboidrato", 240, 0, 60, 0, "unidade", 60),
@@ -94,6 +97,13 @@ export const ALIMENTOS: Alimento[] = [
   // ── Bebidas ──
   A("Café", "bebida", 2, 0.1, 0, 0, "xícara", 200),
   A("Leite desnatado", "bebida", 35, 3.4, 5, 0.1, "copo", 200, { vegano: false, lactose: true }),
+];
+
+// Base final = curados + os 169 alimentos da planilha da nutri (sem duplicar nome).
+const nomesCurados = new Set(CURADOS.map((a) => a.nome));
+export const ALIMENTOS: Alimento[] = [
+  ...CURADOS,
+  ...ALIMENTOS_BASE.filter((a) => !nomesCurados.has(a.nome)),
 ];
 
 const porNome = new Map(ALIMENTOS.map((a) => [a.nome, a]));
@@ -193,7 +203,7 @@ const GRUPO: Record<string, string> = {
   "Requeijão light": "cremoso", "Cream cheese light": "cremoso",
   "Azeite de oliva": "gordura_pura", "Pasta de amendoim": "gordura_pura", "Abacate": "gordura_pura", "Castanhas": "gordura_pura",
 };
-const grupoDe = (a: Alimento) => GRUPO[a.nome] ?? a.cat;
+const grupoDe = (a: Alimento) => GRUPO[a.nome] ?? GRUPO_BASE[a.nome] ?? a.cat;
 
 /**
  * Substitutos equivalentes de um alimento: mesmo GRUPO de substituição, com a
