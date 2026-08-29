@@ -38,6 +38,7 @@ export const authRouter = router({
         email: z.string().email("E-mail inválido"),
         password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres"),
         name: z.string().max(80).optional(),
+        phone: z.string().max(30).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -47,7 +48,8 @@ export const authRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Já existe uma conta com este e-mail." });
       }
       const passwordHash = await hashSenha(input.password);
-      const user = await db.createLocalUser({ email, passwordHash, name: input.name ?? null });
+      const phone = input.phone?.replace(/\D/g, "") ? input.phone.trim() : null;
+      const user = await db.createLocalUser({ email, passwordHash, name: input.name ?? null, phone });
       await iniciarSessao(ctx, user.id);
       return { success: true, user: semSenha(user) };
     }),

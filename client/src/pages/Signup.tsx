@@ -24,8 +24,12 @@ export default function Signup() {
       toast.error("Informe e-mail e senha (mínimo 6 caracteres).");
       return;
     }
+    if (phone.replace(/\D/g, "").length < 10) {
+      toast.error("Informe seu WhatsApp com DDD (é por onde enviamos a dieta).");
+      return;
+    }
     try {
-      await signupMut.mutateAsync({ email, password });
+      await signupMut.mutateAsync({ email, password, phone });
       await utils.auth.me.invalidate();
       navigate("/home");
     } catch (e) {
@@ -59,7 +63,7 @@ export default function Signup() {
         <div className="space-y-3">
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
-          <input type="tel" placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value)}
+          <input type="tel" placeholder="WhatsApp (com DDD)" value={phone} onChange={e => setPhone(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
           <div className="relative">
             <input type={showPass ? "text" : "password"} placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)}

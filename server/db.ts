@@ -117,6 +117,7 @@ export async function createLocalUser(params: {
   email: string;
   passwordHash: string;
   name?: string | null;
+  phone?: string | null;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
@@ -126,6 +127,7 @@ export async function createLocalUser(params: {
     email: params.email,
     passwordHash: params.passwordHash,
     name: params.name ?? null,
+    phone: params.phone ?? null,
     loginMethod: "password",
     lastSignedIn: new Date(),
   });
