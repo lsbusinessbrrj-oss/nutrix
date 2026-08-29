@@ -3,7 +3,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { getStripe } from "../lib/stripe";
 import { criarPix, criarCheckout, criarAssinatura, statusPagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
-import { entregarDieta } from "../lib/delivery";
+import { entregarDieta, confirmarAssinatura } from "../lib/delivery";
 
 export const paymentRouter = router({
   // ── Mercado Pago ──
@@ -40,6 +40,7 @@ export const paymentRouter = router({
   // Simula a aprovação do pagamento (para testes): libera e entrega a dieta.
   simularAprovacao: protectedProcedure.mutation(async ({ ctx }) => {
     await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true });
+    await confirmarAssinatura(ctx.user.id); // e-mail + WhatsApp de "assinatura ativada"
     const entrega = await entregarDieta(ctx.user.id);
     return { aprovado: true, entrega };
   }),

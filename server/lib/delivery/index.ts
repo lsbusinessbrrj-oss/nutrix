@@ -4,8 +4,8 @@ import * as db from "../../db";
 import { gerarPlano } from "../diet/generatePlan";
 import type { Atividade, Objetivo, Sexo } from "../diet/engine";
 import { gerarPdfDieta } from "../pdf/dietPdf";
-import { enviarEmail, type ResultadoEnvio } from "./email";
-import { enviarWhatsapp } from "./whatsapp";
+import { enviarEmail, enviarEmailSimples, assuntoAssinatura, corpoAssinatura, type ResultadoEnvio } from "./email";
+import { enviarWhatsapp, enviarWhatsappTexto, mensagemAssinatura } from "./whatsapp";
 
 type UserRow = NonNullable<Awaited<ReturnType<typeof db.getUserById>>>;
 
@@ -55,6 +55,20 @@ export async function entregarDieta(userId: number, whatsappProativo = false): P
   } else {
     whatsapp = { ok: false, detalhe: "Aguardando o cliente iniciar a conversa no WhatsApp." };
   }
+  return { email, whatsapp };
+}
+
+/** Confirma a assinatura (recorrência) por e-mail e WhatsApp. */
+export async function confirmarAssinatura(userId: number) {
+  const user = await db.getUserById(userId);
+  if (!user) return { email: { ok: false, detalhe: "sem usuário" }, whatsapp: { ok: false, detalhe: "sem usuário" } };
+  const nome = user.name ?? "Cliente";
+  const email = user.email
+    ? { ...(await enviarEmailSimples(user.email, assuntoAssinatura(), corpoAssinatura(nome))), destino: user.email }
+    : { ok: false as const, detalhe: "sem e-mail" };
+  const whatsapp = user.phone
+    ? { ...(await enviarWhatsappTexto(user.phone, mensagemAssinatura(nome))), destino: user.phone }
+    : { ok: false as const, detalhe: "sem telefone" };
   return { email, whatsapp };
 }
 

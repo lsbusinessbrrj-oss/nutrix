@@ -28,7 +28,46 @@ export function corpoEmail(nome: string): string {
   </div>`;
 }
 
+export function assuntoAssinatura() {
+  return "Assinatura NutriX ativada ✅";
+}
+
+export function corpoAssinatura(nome: string, preco = "9,99"): string {
+  const primeiro = nome.split(" ")[0] || nome;
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#0f172a">
+    <div style="background:#166534;padding:20px;border-radius:12px 12px 0 0;text-align:center">
+      <span style="color:#fff;font-size:22px;font-weight:800">Nutri<span style="color:#E53935">X</span></span>
+    </div>
+    <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
+      <h2 style="color:#166534;margin:0 0 8px">Assinatura ativada, ${primeiro}! ✅</h2>
+      <p>Sua assinatura mensal do <strong>NutriX</strong> está ativa.</p>
+      <div style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:10px;padding:14px;margin:14px 0">
+        <p style="margin:0;font-size:15px"><strong>Plano NutriX</strong></p>
+        <p style="margin:4px 0 0;color:#475569;font-size:14px">R$ ${preco}/mês · cobrança automática mensal · cancele quando quiser</p>
+      </div>
+      <p style="font-size:14px">Sua dieta personalizada já está liberada no app e enviada. Enquanto a assinatura estiver ativa, você mantém o acesso ao seu plano e às atualizações.</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:20px">Equipe NutriX · Saúde que Alimenta. Treino que Transforma.<br>Para cancelar, responda este e-mail ou fale com o suporte.</p>
+    </div>
+  </div>`;
+}
+
 const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** Envia um e-mail simples (sem anexo) — usado p/ confirmações. */
+export async function enviarEmailSimples(para: string, assunto: string, html: string): Promise<ResultadoEnvio> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) return { ok: true, simulado: true, detalhe: "Resend não configurado — e-mail simulado." };
+  try {
+    const { Resend } = await import("resend");
+    const { error } = await new Resend(apiKey).emails.send({ from, to: para, subject: assunto, html });
+    if (error) return { ok: false, simulado: false, detalhe: JSON.stringify(error) };
+    return { ok: true, simulado: false };
+  } catch (e) {
+    return { ok: false, simulado: false, detalhe: (e as Error).message };
+  }
+}
 
 export interface ResultadoEnvio { ok: boolean; simulado: boolean; detalhe?: string }
 
