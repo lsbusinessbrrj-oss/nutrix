@@ -10,19 +10,19 @@ export const paymentRouter = router({
   // Pix direto (QR + copia-e-cola).
   criarPix: protectedProcedure.mutation(async ({ ctx }) => {
     const email = ctx.user.email ?? "cliente@nutrix.com.br";
-    const pix = await criarPix(email, ctx.user.name ?? "Cliente");
+    const pix = await criarPix(email, ctx.user.name ?? "Cliente", ctx.user.id);
     await db.createPayment(ctx.user.id, pix.paymentId);
     return { ...pix, preco: PRECO_DIETA };
   }),
 
   // Checkout Pro: cartão de crédito, cartão de débito, Pix e boleto numa tela.
   criarCheckout: protectedProcedure.mutation(async ({ ctx }) => {
-    return criarCheckout(ctx.user.email ?? "cliente@nutrix.com.br", ctx.user.name ?? "Cliente");
+    return criarCheckout(ctx.user.email ?? "cliente@nutrix.com.br", ctx.user.name ?? "Cliente", ctx.user.id);
   }),
 
   // Assinatura recorrente (mensal).
   criarAssinatura: protectedProcedure.mutation(async ({ ctx }) => {
-    return criarAssinatura(ctx.user.email ?? "cliente@nutrix.com.br");
+    return criarAssinatura(ctx.user.email ?? "cliente@nutrix.com.br", ctx.user.id);
   }),
 
   // Confirma um Pix real (consulta o status no Mercado Pago) e, se aprovado,

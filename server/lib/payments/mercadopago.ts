@@ -13,7 +13,7 @@ export interface PixResult {
   simulado: boolean;
 }
 
-export async function criarPix(email: string, nome: string): Promise<PixResult> {
+export async function criarPix(email: string, nome: string, userId?: number): Promise<PixResult> {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) {
     // Modo simulação — sem cobrança real.
@@ -31,6 +31,8 @@ export async function criarPix(email: string, nome: string): Promise<PixResult> 
       description: "Plano alimentar personalizado NutriX",
       payment_method_id: "pix",
       payer: { email, first_name: nome.split(" ")[0] },
+      external_reference: userId != null ? String(userId) : undefined,
+      notification_url: `${APP_URL}/api/mp/webhook`,
     },
   });
   const tx = (res as any).point_of_interaction?.transaction_data;
@@ -48,7 +50,7 @@ export interface CheckoutResult { url: string; simulado: boolean }
  * Checkout Pro — uma tela hospedada do Mercado Pago que oferece
  * cartão de crédito, cartão de débito, Pix e boleto.
  */
-export async function criarCheckout(email: string, nome: string): Promise<CheckoutResult> {
+export async function criarCheckout(email: string, nome: string, userId?: number): Promise<CheckoutResult> {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) return { url: `${APP_URL}/pagamento?sim=checkout`, simulado: true };
   const client = new MercadoPagoConfig({ accessToken: token });
@@ -57,6 +59,8 @@ export async function criarCheckout(email: string, nome: string): Promise<Checko
     body: {
       items: [{ id: "dieta-nutrix", title: "Plano alimentar NutriX", quantity: 1, unit_price: PRECO_DIETA, currency_id: "BRL" }],
       payer: { email, name: nome.split(" ")[0] },
+      external_reference: userId != null ? String(userId) : undefined,
+      notification_url: `${APP_URL}/api/mp/webhook`,
       back_urls: {
         success: `${APP_URL}/dietas?pago=1`,
         failure: `${APP_URL}/pagamento?status=falha`,
@@ -72,7 +76,7 @@ export async function criarCheckout(email: string, nome: string): Promise<Checko
 }
 
 /** Assinatura recorrente (mensal) — cobrança automática via Mercado Pago. */
-export async function criarAssinatura(email: string, valor = PRECO_DIETA): Promise<CheckoutResult> {
+export async function criarAssinatura(email: string, userId?: number, valor = PRECO_DIETA): Promise<CheckoutResult> {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) return { url: `${APP_URL}/pagamento?sim=assinatura`, simulado: true };
   const client = new MercadoPagoConfig({ accessToken: token });
@@ -83,6 +87,7 @@ export async function criarAssinatura(email: string, valor = PRECO_DIETA): Promi
       auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: valor, currency_id: "BRL" },
       back_url: `${APP_URL}/dietas?assinou=1`,
       payer_email: email,
+      external_reference: userId != null ? String(userId) : undefined,
       status: "pending",
     },
   });
@@ -99,4 +104,22 @@ export async function statusPagamento(paymentId: string): Promise<string> {
   const payment = new Payment(client);
   const res = await payment.get({ id: paymentId });
   return res.status ?? "pending";
+}
+
+/** Detalhes de um pagamento (para o webhook): status + quem pagou. */
+export async function detalhePagamento(id: string): Promise<{ status: string; externalReference?: string; email?: string }> {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token || id.startsWith("sim_")) return { status: "pending" };
+  const client = new MercadoPagoConfig({ accessToken: token });
+  const res = await new Payment(client).get({ id });
+  return { status: res.status ?? "pending", externalReference: (res as any).external_reference ?? undefined, email: res.payer?.email ?? undefined };
+}
+
+/** Detalhes de uma assinatura/preapproval (para o webhook). */
+export async function detalheAssinatura(id: string): Promise<{ status: string; externalReference?: string; email?: string }> {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) return { status: "pending" };
+  const client = new MercadoPagoConfig({ accessToken: token });
+  const res = await new PreApproval(client).get({ id });
+  return { status: (res as any).status ?? "pending", externalReference: (res as any).external_reference ?? undefined, email: (res as any).payer_email ?? undefined };
 }

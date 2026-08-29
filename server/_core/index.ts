@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerStripeWebhook } from "../stripe-webhook";
 import { registerWhatsappWebhook } from "../whatsapp-webhook";
+import { registerMpWebhook } from "../mp-webhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,6 +42,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerWhatsappWebhook(app);
+  registerMpWebhook(app);
   // tRPC API
   app.use(
     "/api/trpc",
