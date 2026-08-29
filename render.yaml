@@ -1,0 +1,37 @@
+# Deploy do NutriX no Render (https://render.com) — Blueprint.
+# Cria um Web Service Node que builda o cliente + servidor e sobe o app.
+services:
+  - type: web
+    name: nutrix
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: corepack enable && corepack pnpm install && corepack pnpm build
+    startCommand: corepack pnpm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: EMAIL_FROM
+        value: NutriX <dieta@usenutrix.com.br>
+      - key: WHATSAPP_VERIFY_TOKEN
+        value: nutrix
+      - key: PRECO_DIETA
+        value: "9.99"
+      # Segredos — preencher no painel do Render (Environment), NÃO versionar:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: VITE_WHATSAPP_NEGOCIO
+        sync: false
+      - key: APP_URL
+        sync: false
