@@ -27,29 +27,29 @@ function logo(): string | null {
 }
 
 const s = StyleSheet.create({
-  page: { paddingTop: 28, paddingBottom: 40, paddingHorizontal: 32, fontSize: 10, color: C.texto, fontFamily: "Helvetica" },
+  page: { paddingTop: 28, paddingBottom: 30, paddingHorizontal: 32, fontSize: 9.5, color: C.texto, fontFamily: "Helvetica" },
   mascote: { width: 64, height: 64, borderRadius: 32, alignSelf: "center", marginBottom: 6 },
-  titulo: { fontSize: 18, color: C.verde, fontFamily: "Helvetica-Bold", textAlign: "center" },
-  subtitulo: { fontSize: 9, color: C.cinza, textAlign: "center", marginTop: 2, marginBottom: 12 },
-  header: { backgroundColor: C.cinzaClaro, borderRadius: 8, padding: 12, marginBottom: 8, border: `1 solid ${C.borda}` },
-  headerTit: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 6 },
+  titulo: { fontSize: 15, color: C.verde, fontFamily: "Helvetica-Bold", textAlign: "center" },
+  subtitulo: { fontSize: 8, color: C.cinza, textAlign: "center", marginTop: 1, marginBottom: 7 },
+  header: { backgroundColor: C.cinzaClaro, borderRadius: 6, padding: 8, marginBottom: 5, border: `1 solid ${C.borda}` },
+  headerTit: { fontSize: 9, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 3 },
   dadoRow: { flexDirection: "row", flexWrap: "wrap" },
-  dado: { width: "50%", flexDirection: "row", paddingVertical: 2.5 },
-  dadoLbl: { color: C.cinza, width: 78 },
+  dado: { width: "50%", flexDirection: "row", paddingVertical: 1.4 },
+  dadoLbl: { color: C.cinza, width: 72 },
   dadoVal: { fontFamily: "Helvetica-Bold", color: C.texto },
-  metasCard: { backgroundColor: C.verdeClaro, borderRadius: 8, padding: 10, marginBottom: 4 },
+  metasCard: { backgroundColor: C.verdeClaro, borderRadius: 6, padding: 7, marginBottom: 2 },
   metaRow: { flexDirection: "row", flexWrap: "wrap" },
-  metaBox: { width: "20%", paddingVertical: 3 },
-  metaVal: { fontSize: 13, color: C.verde, fontFamily: "Helvetica-Bold" },
-  metaLbl: { fontSize: 7, color: C.cinza, textTransform: "uppercase" },
-  mealTitle: { fontSize: 13, color: C.verde, fontFamily: "Helvetica-Bold", marginTop: 14, marginBottom: 2, borderBottom: `1 solid ${C.verde2}`, paddingBottom: 3 },
-  optTitle: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: C.amarelo, marginTop: 8, marginBottom: 3, backgroundColor: C.amareloBg, paddingVertical: 2, paddingHorizontal: 6, borderRadius: 3, alignSelf: "flex-start" },
-  itemRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5, borderBottom: `0.5 solid ${C.borda}` },
+  metaBox: { width: "20%", paddingVertical: 2 },
+  metaVal: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" },
+  metaLbl: { fontSize: 6.5, color: C.cinza, textTransform: "uppercase" },
+  mealTitle: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold", marginTop: 13, marginBottom: 3, borderBottom: `1 solid ${C.verde2}`, paddingBottom: 3 },
+  optTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.amarelo, marginTop: 8, marginBottom: 3, backgroundColor: C.amareloBg, paddingVertical: 2, paddingHorizontal: 6, borderRadius: 3, alignSelf: "flex-start" },
+  itemRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2, borderBottom: `0.5 solid ${C.borda}` },
   itemName: { width: "62%" },
   itemQtd: { width: "38%", textAlign: "right", color: C.cinza },
-  subLine: { fontSize: 7.5, color: C.cinza, marginLeft: 8, marginBottom: 2 },
-  obs: { fontSize: 8.5, color: C.cinza, marginTop: 8, lineHeight: 1.4 },
-  rodape: { position: "absolute", bottom: 18, left: 32, right: 32, fontSize: 7.5, color: C.cinza, textAlign: "center", borderTop: `0.5 solid ${C.borda}`, paddingTop: 6 },
+  subLine: { fontSize: 7.5, color: C.cinza, marginLeft: 6, marginBottom: 1.5 },
+  obs: { fontSize: 8.5, color: C.cinza, marginTop: 5, lineHeight: 1.35 },
+  rodape: { position: "absolute", bottom: 14, left: 30, right: 30, fontSize: 7, color: C.cinza, textAlign: "center", borderTop: `0.5 solid ${C.borda}`, paddingTop: 5 },
 });
 
 // Ícones de alimentos (desenhados em ~26pt na origem) para o fundo do PDF.
@@ -182,31 +182,31 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
 
     // Refeições: a dieta começa na página 1. Cada OPÇÃO fica junta (não quebra
     // no meio), mas a refeição pode fluir para a página seguinte entre as opções.
+    // Refeições compactas: o conteúdo flui continuamente (sem espaços vazios).
+    // Cada item fica inteiro; título/opção não ficam órfãos no fim da página.
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, minPresenceAhead: 90 },
+      h(View, { key: mi, minPresenceAhead: 46 },
+        h(Text, { style: s.mealTitle, minPresenceAhead: 40 }, `${meal.time} · ${meal.name}`),
         ...meal.options.map((opt, oi) =>
-          h(View, { key: oi, wrap: false },
-            oi === 0 ? h(Text, { style: s.mealTitle }, `${meal.time} · ${meal.name}`) : null,
+          h(View, { key: oi, minPresenceAhead: 30 },
             h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
         ),
       ),
     ),
-    rodape(),
-  );
 
-  const orient = h(Page, { size: "A4", style: s.page, key: "orient" },
-    fundo(),
-    h(Text, { style: s.titulo }, "Orientação nutricional"),
-    h(Text, { style: s.subtitulo }, `${cliente.nome} · ${dataAval}`),
-    h(View, { style: s.header },
-      ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
+    // Orientação nutricional flui logo após as refeições (sem página vazia).
+    h(View, { minPresenceAhead: 70 },
+      h(Text, { style: s.mealTitle }, "Orientação nutricional"),
+      h(View, { style: { ...s.header, marginTop: 4 } },
+        ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
+      ),
     ),
     rodape(),
   );
 
-  return h(Document, { title: `Dieta de ${cliente.nome}`, author: "NutriX" }, capa, orient);
+  return h(Document, { title: `Dieta de ${cliente.nome}`, author: "NutriX" }, capa);
 }
 
 export async function gerarPdfDieta(cliente: ClientePdf, plano: PlanData): Promise<Buffer> {
