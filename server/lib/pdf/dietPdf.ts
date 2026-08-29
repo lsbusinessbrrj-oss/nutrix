@@ -29,6 +29,17 @@ function logo(): string | null {
   return LOGO;
 }
 
+// Arte do cabeçalho (faixa do mockup) usada direta como imagem — fica idêntica.
+let HEADER: string | null | undefined;
+function headerImg(): string | null {
+  if (HEADER !== undefined) return HEADER;
+  try {
+    const p = path.join(process.cwd(), "client", "public", "nutrix-header.png");
+    HEADER = "data:image/png;base64," + readFileSync(p).toString("base64");
+  } catch { HEADER = null; }
+  return HEADER;
+}
+
 const s = StyleSheet.create({
   page: { paddingTop: 28, paddingBottom: 30, paddingHorizontal: 32, fontSize: 9.5, color: C.texto, fontFamily: "Helvetica" },
   mascote: { width: 64, height: 64, borderRadius: 32, alignSelf: "center", marginBottom: 6 },
@@ -168,13 +179,14 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
   const imc = cliente.peso && alturaM ? cliente.peso / (alturaM * alturaM) : null;
   const dataAval = new Date().toLocaleDateString("pt-BR");
   const sexoTxt = cliente.sexo === "male" ? "Masculino" : cliente.sexo === "female" ? "Feminino" : (cliente.sexo ?? "—");
+  const hdr = headerImg();
 
   const capa = h(Page, { size: "A4", style: s.page, key: "capa" },
     fundo(),
-    bannerTopo(),
-    h(View, { style: { height: 172 } }), // espaço do cabeçalho do topo (200 − paddingTop 28)
-    h(Text, { style: s.titulo }, "Plano Alimentar Personalizado"),
-    h(Text, { style: s.subtitulo }, "NutriX · Saúde que Alimenta. Treino que Transforma."),
+    // Cabeçalho = arte do mockup (full-bleed até as bordas da página).
+    hdr
+      ? h(Image, { src: hdr, style: { width: 595, height: 247, marginTop: -28, marginLeft: -32, marginRight: -32, marginBottom: 6 } })
+      : h(View, { style: { height: 8 } }),
 
     h(View, { style: s.header },
       folhaGrande(),
