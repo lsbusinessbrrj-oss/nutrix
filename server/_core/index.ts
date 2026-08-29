@@ -43,6 +43,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerWhatsappWebhook(app);
   registerMpWebhook(app);
+  // Health check leve (para monitor de uptime manter o serviço acordado no Render).
+  app.get("/health", (_req, res) => res.json({ ok: true, service: "nutrix" }));
   // tRPC API
   app.use(
     "/api/trpc",

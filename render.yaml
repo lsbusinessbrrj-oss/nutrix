@@ -8,7 +8,7 @@ services:
     region: oregon
     buildCommand: npm i -g pnpm@10.4.1 && pnpm install --no-frozen-lockfile && pnpm build
     startCommand: pnpm start
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
