@@ -103,17 +103,19 @@ function fundo() {
 // Banner do topo (estilo faixa com onda), nas cores NutriX + logo à direita.
 function bannerTopo() {
   const src = logo();
-  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 158 } },
-    h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 158 }, viewBox: "0 0 595 158" },
+  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 132 } },
+    h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 132 }, viewBox: "0 0 595 132" },
       // Onda verde principal
-      h(Path, { d: "M0 0 H595 V110 C 470 150 360 90 235 116 C 150 134 70 128 0 114 Z", fill: C.verde }),
+      h(Path, { d: "M0 0 H595 V92 C 470 128 360 74 235 100 C 150 118 70 112 0 98 Z", fill: C.verde }),
       // Onda de destaque (verde mais claro), à direita
-      h(Path, { d: "M300 116 C 410 92 520 126 595 104 L595 150 C 500 166 400 150 340 132 C 322 126 308 122 300 116 Z", fill: "#2E9E5B" }),
+      h(Path, { d: "M300 100 C 410 78 520 110 595 90 L595 128 C 500 142 400 128 340 112 C 322 106 308 104 300 100 Z", fill: "#2E9E5B" }),
     ),
-    h(Text, { style: { position: "absolute", top: 30, left: 34, color: "#ffffff", fontSize: 34, fontFamily: "Helvetica-Bold" } }, "NutriX"),
-    h(Text, { style: { position: "absolute", top: 74, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Saúde que Alimenta."),
-    h(Text, { style: { position: "absolute", top: 89, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Treino que Transforma."),
-    src ? h(Image, { src, style: { position: "absolute", top: 24, left: 472, width: 86, height: 86, borderRadius: 43 } }) : null,
+    // NutriX com o X em amarelo
+    h(Text, { style: { position: "absolute", top: 26, left: 34, fontSize: 34, fontFamily: "Helvetica-Bold", color: "#ffffff" } },
+      "Nutri", h(Text, { style: { color: "#FCD34D" } }, "X")),
+    h(Text, { style: { position: "absolute", top: 72, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Saúde que Alimenta."),
+    h(Text, { style: { position: "absolute", top: 87, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Treino que Transforma."),
+    src ? h(Image, { src, style: { position: "absolute", top: 16, left: 470, width: 96, height: 96, borderRadius: 48 } }) : null,
   );
 }
 
@@ -149,9 +151,9 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
   const capa = h(Page, { size: "A4", style: s.page, key: "capa" },
     fundo(),
     bannerTopo(),
-    h(View, { style: { height: 138 } }), // espaço do banner do topo
+    h(View, { style: { height: 104 } }), // espaço do banner do topo (132 − paddingTop 28)
     h(Text, { style: s.titulo }, "Plano Alimentar Personalizado"),
-    h(Text, { style: s.subtitulo }, `Avaliação: ${dataAval}`),
+    h(Text, { style: s.subtitulo }, "NutriX · Saúde que Alimenta. Treino que Transforma."),
 
     h(View, { style: s.header },
       h(Text, { style: s.headerTit }, "Dados do cliente"),
@@ -178,11 +180,13 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
+    // Refeições: a dieta começa na página 1. Cada OPÇÃO fica junta (não quebra
+    // no meio), mas a refeição pode fluir para a página seguinte entre as opções.
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, wrap: false },
-        h(Text, { style: s.mealTitle }, `${meal.time} · ${meal.name}`),
+      h(View, { key: mi, minPresenceAhead: 90 },
         ...meal.options.map((opt, oi) =>
-          h(View, { key: oi },
+          h(View, { key: oi, wrap: false },
+            oi === 0 ? h(Text, { style: s.mealTitle }, `${meal.time} · ${meal.name}`) : null,
             h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
