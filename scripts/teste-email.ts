@@ -1,7 +1,6 @@
-// Teste REAL de e-mail via Resend. Enquanto o domínio não está verificado,
-// usa o remetente onboarding@resend.dev, que só entrega no e-mail dono da conta.
+// Teste REAL de e-mail via Resend. Domínio usenutrix.com.br já verificado —
+// usa o remetente do .env (dieta@usenutrix.com.br), que entrega para qualquer e-mail.
 import "dotenv/config";
-process.env.EMAIL_FROM = "NutriX <onboarding@resend.dev>";
 
 import { gerarPlano } from "../server/lib/diet/generatePlan";
 import { gerarPdfDieta } from "../server/lib/pdf/dietPdf";
