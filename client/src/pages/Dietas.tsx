@@ -237,6 +237,12 @@ function MealCard({ meal }: { meal: any }) {
       <div className="space-y-3">
         {foods.map((food: any, j: number) => <FoodRow key={j} food={food} />)}
       </div>
+
+      {options[opt]?.obs && (
+        <p className="mt-4 text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-3">
+          <span className="font-semibold text-gray-600">Observação: </span>{options[opt].obs}
+        </p>
+      )}
     </div>
   );
 }
