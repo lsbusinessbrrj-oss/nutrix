@@ -78,66 +78,69 @@ function criarItem(a: Alimento, gramas: number, restr: Set<Restricao>): FoodItem
   return { name: a.nome, quantity: formatarMedida(a, gramas), substituicoes: subs };
 }
 
-/** Monta UMA opção de refeição a partir de uma base de alimentos escolhidos. */
+/**
+ * Monta UMA opção de refeição com estrutura de 4 itens, como na referência:
+ * - leve (café/lanche): proteína leve + fruta + carboidrato (pão) + cremoso (requeijão);
+ * - principal (almoço/jantar): proteína + carboidrato + legume (brócolis) + salada à vontade.
+ */
 function montarOpcao(
   targetKcal: number, targetProt: number,
   base: Alimento[], restr: Set<Restricao>, seed: number, leve: boolean,
 ): Option {
   const por = (c: Categoria) => base.filter((a) => a.cat === c);
-  const padrao = (c: Categoria) => {
+  const padrao = (c: Categoria, nomes?: Set<string>) => {
     let pool = filtrarPorRestricoes(c, restr);
-    // Em refeições leves, a proteína padrão é leve (ovo/queijo/iogurte…), sem carne.
-    if (c === "proteina" && leve) {
-      const leves = pool.filter((a) => PROT_LEVE.has(a.nome));
-      if (leves.length) pool = leves;
-    }
+    if (nomes) { const f = pool.filter((a) => nomes.has(a.nome)); if (f.length) pool = f; }
     return pool.length ? pick(pool, seed) : undefined;
   };
-
-  // 1) Proteína (obrigatória) — a escolhida ou uma padrão.
-  const prot = por("proteina")[0] ?? padrao("proteina");
-  // 2) Carboidrato (obrigatório) — o escolhido ou um padrão.
-  const carb = por("carboidrato")[0] ?? padrao("carboidrato");
-  // 3) Extras: frutas, vegetais e bebidas escolhidos (porção fixa).
-  const extras = base.filter((a) => a.cat === "fruta" || a.cat === "vegetal" || a.cat === "bebida").slice(0, 2);
+  const acharVeg = (pred: (a: Alimento) => boolean) =>
+    por("vegetal").find(pred) ?? filtrarPorRestricoes("vegetal", restr).find(pred);
 
   const foods: FoodItem[] = [];
   let kcal = 0;
+  const add = (a: Alimento, gramas: number, override?: string) => {
+    const item = criarItem(a, gramas, restr);
+    if (override) item.quantity = override;
+    foods.push(item);
+    kcal += kcalDe(a, gramas);
+  };
 
+  // Proteína (obrigatória) — escolhida ou padrão (leve = ovo/queijo/…, sem carne).
+  const prot = por("proteina")[0] ?? padrao("proteina", leve ? PROT_LEVE : undefined);
   if (prot) {
     const cap = leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL;
     const g = arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), cap));
-    foods.push(criarItem(prot, g, restr));
-    kcal += kcalDe(prot, g);
+    add(prot, g);
   }
-  // Extras entram antes de dimensionar o carbo (para o carbo fechar as calorias).
-  for (const e of extras) {
-    const g = e.gPorMedida; // 1 medida caseira
-    foods.push(criarItem(e, g, restr));
-    kcal += kcalDe(e, g);
-  }
-  if (carb) {
-    const restante = Math.max(targetKcal - kcal, 0);
-    // Entre 1 medida caseira e um teto realista (evita "7 fatias de pão").
-    const maxG = carb.gPorMedida * (leve ? 4 : 9);
-    const g = arred5(Math.min(Math.max((restante / carb.kcal) * 100, carb.gPorMedida), maxG));
-    foods.push(criarItem(carb, g, restr));
-    kcal += kcalDe(carb, g);
-  }
+  const carb = por("carboidrato")[0] ?? padrao("carboidrato");
 
-  // 4) Gordura para fechar as calorias (café com requeijão; almoço com azeite),
-  //    como na referência — evita encher a refeição só de carboidrato.
-  const faltam = targetKcal - kcal;
-  if (faltam > 80) {
-    const pool = filtrarPorRestricoes("gordura", restr);
-    const pref = leve
-      ? ["Requeijão light", "Cream cheese light", "Pasta de amendoim"]
-      : ["Azeite de oliva", "Pasta de amendoim"];
-    const gord = pool.find((a) => pref.includes(a.nome)) ?? pool[0];
-    if (gord) {
-      const g = arred5(Math.min((faltam / gord.kcal) * 100, gord.gPorMedida * 3));
-      if (g >= 5) { foods.push(criarItem(gord, g, restr)); kcal += kcalDe(gord, g); }
+  if (leve) {
+    // Fruta (1 porção) + pão (teto) + cremoso para fechar.
+    const fruta = por("fruta")[0] ?? padrao("fruta");
+    if (fruta) add(fruta, fruta.gPorMedida);
+    if (carb) {
+      const restante = Math.max(targetKcal - kcal, 0);
+      const g = arred5(Math.min(Math.max((restante / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 4));
+      add(carb, g);
     }
+    const faltam = targetKcal - kcal;
+    if (faltam > 60) {
+      const gord = padrao("gordura", new Set(["Requeijão light", "Cream cheese light", "Pasta de amendoim"]));
+      if (gord) { const g = arred5(Math.min((faltam / gord.kcal) * 100, gord.gPorMedida * 3)); if (g >= 5) add(gord, g); }
+    }
+  } else {
+    // Carboidrato + brócolis (100 g) + salada à vontade.
+    const legume = acharVeg((a) => a.nome === "Brócolis cozido");
+    const salada = acharVeg((a) => a.nome.includes("Salada"));
+    const legumeKcal = legume ? kcalDe(legume, 100) : 0;
+    const saladaKcal = salada ? kcalDe(salada, salada.gPorMedida) : 0;
+    if (carb) {
+      const restante = Math.max(targetKcal - kcal - legumeKcal - saladaKcal, 0);
+      const g = arred5(Math.min(Math.max((restante / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 9));
+      add(carb, g);
+    }
+    if (legume) add(legume, 100);
+    if (salada) add(salada, salada.gPorMedida, "à vontade");
   }
 
   return { foods, kcal: Math.round(kcal) };

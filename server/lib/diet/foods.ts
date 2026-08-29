@@ -176,10 +176,29 @@ const MACRO_CHAVE: Record<Categoria, "c" | "p" | "f" | "kcal"> = {
   carboidrato: "c", fruta: "c", proteina: "p", gordura: "f", vegetal: "kcal", bebida: "kcal",
 };
 
+// Grupo de substituição de cada alimento (troca só por itens do MESMO grupo:
+// carne↔carne, queijo/cremoso↔cremoso, carbo-do-prato↔carbo-do-prato, etc.).
+const GRUPO: Record<string, string> = {
+  "Frango grelhado": "carne", "Frango desfiado": "carne", "Patinho grelhado": "carne",
+  "Patinho moído": "carne", "Carne bovina assada": "carne", "Carne de porco (lombo)": "carne", "Peixe (tilápia)": "carne",
+  "Ovo": "prot_leve", "Queijo muçarela": "prot_leve", "Presunto magro": "prot_leve",
+  "Iogurte natural desnatado": "prot_leve", "Whey protein": "prot_leve",
+  "Tofu firme": "prot_veg", "Grão-de-bico cozido": "prot_veg",
+  "Pão de forma": "carbo_pao", "Tapioca": "carbo_pao", "Cuscuz de milho": "carbo_pao",
+  "Pão de queijo": "carbo_pao", "Aveia em flocos": "carbo_pao",
+  "Biscoito de polvilho": "carbo_pao", "Biscoito de água e sal": "carbo_pao", "Biscoito de arroz": "carbo_pao",
+  "Arroz branco cozido": "carbo_prato", "Arroz integral cozido": "carbo_prato", "Batata doce cozida": "carbo_prato",
+  "Mandioca cozida": "carbo_prato", "Inhame cozido": "carbo_prato", "Batata inglesa cozida": "carbo_prato",
+  "Abóbora cozida": "carbo_prato", "Macarrão cozido": "carbo_prato", "Feijão preto cozido": "carbo_prato",
+  "Requeijão light": "cremoso", "Cream cheese light": "cremoso",
+  "Azeite de oliva": "gordura_pura", "Pasta de amendoim": "gordura_pura", "Abacate": "gordura_pura", "Castanhas": "gordura_pura",
+};
+const grupoDe = (a: Alimento) => GRUPO[a.nome] ?? a.cat;
+
 /**
- * Substitutos equivalentes de um alimento: mesma categoria, com a gramatura
- * ajustada para manter o mesmo macronutriente-chave (as trocas "calculadas
- * para manter o equilíbrio nutricional" da referência).
+ * Substitutos equivalentes de um alimento: mesmo GRUPO de substituição, com a
+ * gramatura ajustada para manter o macronutriente-chave (trocas "calculadas
+ * para manter o equilíbrio nutricional", como na referência).
  */
 export function substituicoesDe(
   a: Alimento, gramas: number, r: Set<Restricao>, max = 6,
@@ -188,8 +207,9 @@ export function substituicoesDe(
   const valor = (x: Alimento) => (chave === "kcal" ? x.kcal : x[chave]);
   const base = valor(a);
   if (!base) return [];
+  const g = grupoDe(a);
   return ALIMENTOS
-    .filter((x) => x.cat === a.cat && x.nome !== a.nome && passaRestricoes(x, r) && valor(x) > 0)
+    .filter((x) => grupoDe(x) === g && x.nome !== a.nome && passaRestricoes(x, r) && valor(x) > 0)
     .map((x) => ({ alimento: x, gramas: gramas * (base / valor(x)) }))
     .filter((s) => s.gramas >= 5 && s.gramas <= 600)
     .slice(0, max);
