@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RecoverPassword from "./pages/RecoverPassword";
 import Dietas from "./pages/Dietas";
+import Pagamento from "./pages/Pagamento";
 import Perfil from "./pages/Perfil";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsuarios from "./pages/AdminUsuarios";
@@ -32,6 +33,9 @@ function Router() {
       </Route>
       <Route path="/dietas">
         {() => <ProtectedRoute component={Dietas} />}
+      </Route>
+      <Route path="/pagamento">
+        {() => <ProtectedRoute component={Pagamento} />}
       </Route>
       <Route path="/perfil">
         {() => <ProtectedRoute component={Perfil} />}

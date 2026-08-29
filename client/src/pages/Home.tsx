@@ -244,11 +244,7 @@ export default function Home() {
           { mealType: "lanche_manha",  foods: skipLanche ? [] : lancheManha },
         ],
       });
-      const result = await createCheckoutMutation.mutateAsync();
-      if (result.url) {
-        toast.success("Redirecionando para o pagamento...");
-        window.open(result.url, "_blank");
-      }
+      navigate("/pagamento");
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao processar. Tente novamente.");
     }
