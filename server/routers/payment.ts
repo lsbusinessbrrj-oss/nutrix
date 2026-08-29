@@ -2,16 +2,27 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { getStripe } from "../lib/stripe";
-import { criarPix, statusPagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
+import { criarPix, criarCheckout, criarAssinatura, statusPagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
 import { entregarDieta } from "../lib/delivery";
 
 export const paymentRouter = router({
-  // ── Mercado Pago (Pix) ──
+  // ── Mercado Pago ──
+  // Pix direto (QR + copia-e-cola).
   criarPix: protectedProcedure.mutation(async ({ ctx }) => {
     const email = ctx.user.email ?? "cliente@nutrix.com.br";
     const pix = await criarPix(email, ctx.user.name ?? "Cliente");
     await db.createPayment(ctx.user.id, pix.paymentId);
     return { ...pix, preco: PRECO_DIETA };
+  }),
+
+  // Checkout Pro: cartão de crédito, cartão de débito, Pix e boleto numa tela.
+  criarCheckout: protectedProcedure.mutation(async ({ ctx }) => {
+    return criarCheckout(ctx.user.email ?? "cliente@nutrix.com.br", ctx.user.name ?? "Cliente");
+  }),
+
+  // Assinatura recorrente (mensal).
+  criarAssinatura: protectedProcedure.mutation(async ({ ctx }) => {
+    return criarAssinatura(ctx.user.email ?? "cliente@nutrix.com.br");
   }),
 
   // Confirma um Pix real (consulta o status no Mercado Pago) e, se aprovado,

@@ -24,9 +24,9 @@ describe("engine — cálculo de calorias e macros", () => {
 describe("generatePlan — templates da referência", () => {
   const homem87: PerfilNutri = { sexo: "male", peso: 87, altura: 177, idade: 30, objetivo: "weight_loss", atividade: "moderado" };
 
-  it("tem as 4 refeições da referência", () => {
+  it("tem as 5 refeições (com lanche da manhã)", () => {
     const plano = gerarPlano(homem87);
-    expect(plano.meals.map((m) => m.name)).toEqual(["Café da manhã", "Almoço", "Café da Tarde", "Jantar"]);
+    expect(plano.meals.map((m) => m.name)).toEqual(["Café da manhã", "Lanche da manhã", "Almoço", "Café da Tarde", "Jantar"]);
     expect(plano.meals.find((m) => m.name === "Jantar")!.options).toHaveLength(3);
   });
 
@@ -36,7 +36,7 @@ describe("generatePlan — templates da referência", () => {
   });
 
   it("Almoço Op1 tem frango, arroz, feijão e brócolis", () => {
-    const almoco = gerarPlano(homem87).meals[1].options[0].foods.map((f) => f.name);
+    const almoco = gerarPlano(homem87).meals.find((m) => m.name === "Almoço")!.options[0].foods.map((f) => f.name);
     expect(almoco).toContain("Filé de frango grelhado");
     expect(almoco).toContain("Arroz branco cozido");
     expect(almoco).toContain("Feijão preto cozido");
@@ -45,7 +45,7 @@ describe("generatePlan — templates da referência", () => {
 
   it("substituições exatas por item (arroz → batata; ovo → queijo minas)", () => {
     const plano = gerarPlano(homem87);
-    const arroz = plano.meals[1].options[0].foods.find((f) => f.name === "Arroz branco cozido")!;
+    const arroz = plano.meals.find((m) => m.name === "Almoço")!.options[0].foods.find((f) => f.name === "Arroz branco cozido")!;
     expect(arroz.substituicoes.map((s) => s.name)).toContain("Batata inglesa cozida");
     const ovo = plano.meals[0].options[0].foods.find((f) => f.name === "Ovo de galinha cozido")!;
     expect(ovo.substituicoes.map((s) => s.name)).toContain("Queijo minas");
@@ -75,7 +75,7 @@ describe("generatePlan — templates da referência", () => {
 
   it("almoço só com fruta escolhida ainda traz proteína + carbo", () => {
     const plano = gerarPlano(homem87, null, { almoco: ["al_salada_alface"] });
-    const cats = plano.meals[1].options[0].foods
+    const cats = plano.meals.find((m) => m.name === "Almoço")!.options[0].foods
       .map((f) => alimentoCat(f.name))
       .filter(Boolean);
     expect(cats).toContain("proteina");

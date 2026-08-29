@@ -47,6 +47,21 @@ const CAFE_OP2: RefOpcao = {
   obs: "Pode ser batida como vitamina ou mousse (tudo no liquidificador).",
 };
 
+const LANCHE_OP1: RefOpcao = {
+  itens: [
+    I("Whey protein concentrado", "1 medidor ou 30g", 30, 400, { medida: "medidor", gPorMedida: 30 }),
+    I("Banana prata", "1 unidade média ou 65g", 65, 98, { medida: "unidade média", gPorMedida: 65 }),
+  ],
+  obs: "Lanche leve — pode ser batido com água ou leite (vitamina).",
+};
+const LANCHE_OP2: RefOpcao = {
+  itens: [
+    I("Iogurte natural", "1 pote ou 170g", 170, 56, { medida: "pote", gPorMedida: 170 }),
+    I("Aveia em flocos", "2 colheres de sopa cheias ou 30g", 30, 389, { medida: "colher de sopa cheia", gPorMedida: 15 }),
+    I("Banana prata", "1 unidade média ou 65g", 65, 98, { medida: "unidade média", gPorMedida: 65 }),
+  ],
+};
+
 const TARDE_OP1: RefOpcao = {
   itens: [
     I("Ovo de galinha cozido", "2 unidades médias ou 100g", 100, 155, { medida: "unidade média", gPorMedida: 50 }),
@@ -95,6 +110,7 @@ const JANTAR_OP3: RefOpcao = {
 
 export const REF_REFEICOES: RefRefeicao[] = [
   { key: "cafe_manha", name: "Café da manhã", time: "08:30", opcoes: [CAFE_OP1, CAFE_OP2] },
+  { key: "lanche_manha", name: "Lanche da manhã", time: "10:30", opcoes: [LANCHE_OP1, LANCHE_OP2] },
   { key: "almoco", name: "Almoço", time: "12:00", opcoes: [PRINCIPAL_OP1, PRINCIPAL_OP2] },
   { key: "lanche_tarde", name: "Café da Tarde", time: "17:00", opcoes: [TARDE_OP1, TARDE_OP2] },
   { key: "janta", name: "Jantar", time: "21:00", opcoes: [PRINCIPAL_OP1, PRINCIPAL_OP2, JANTAR_OP3] },
@@ -148,6 +164,11 @@ export const REF_SUBS: Record<string, { name: string; quantity: string }[]> = {
   ],
   "Leite semidesnatado": [
     { name: "Iogurte grego tradicional", quantity: "1 unidade ou 90ml" },
+  ],
+  "Iogurte natural": [
+    { name: "Iogurte grego tradicional", quantity: "1 unidade ou 90g" },
+    { name: "Leite semidesnatado", quantity: "200 ml" },
+    { name: "Queijo cottage 1%", quantity: "2 fatias ou 74g" },
   ],
   "Arroz branco cozido": [
     { name: "Batata inglesa cozida", quantity: "350 g" },

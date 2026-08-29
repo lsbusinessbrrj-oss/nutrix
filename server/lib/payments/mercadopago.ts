@@ -1,9 +1,10 @@
 // Mercado Pago — pagamento por Pix.
 // Com MP_ACCESS_TOKEN configurado, cria um Pix de verdade (QR + copia-e-cola).
 // Sem token, retorna um Pix "de simulação" para testar o fluxo ponta a ponta.
-import { MercadoPagoConfig, Payment } from "mercadopago";
+import { MercadoPagoConfig, Payment, Preference, PreApproval } from "mercadopago";
 
 export const PRECO_DIETA = Number(process.env.PRECO_DIETA ?? "9.99");
+const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
 export interface PixResult {
   paymentId: string;
@@ -39,6 +40,55 @@ export async function criarPix(email: string, nome: string): Promise<PixResult> 
     qrBase64: tx?.qr_code_base64,
     simulado: false,
   };
+}
+
+export interface CheckoutResult { url: string; simulado: boolean }
+
+/**
+ * Checkout Pro — uma tela hospedada do Mercado Pago que oferece
+ * cartão de crédito, cartão de débito, Pix e boleto.
+ */
+export async function criarCheckout(email: string, nome: string): Promise<CheckoutResult> {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) return { url: `${APP_URL}/pagamento?sim=checkout`, simulado: true };
+  const client = new MercadoPagoConfig({ accessToken: token });
+  const pref = new Preference(client);
+  const res = await pref.create({
+    body: {
+      items: [{ id: "dieta-nutrix", title: "Plano alimentar NutriX", quantity: 1, unit_price: PRECO_DIETA, currency_id: "BRL" }],
+      payer: { email, name: nome.split(" ")[0] },
+      back_urls: {
+        success: `${APP_URL}/dietas?pago=1`,
+        failure: `${APP_URL}/pagamento?status=falha`,
+        pending: `${APP_URL}/pagamento?status=pendente`,
+      },
+      auto_return: "approved",
+      statement_descriptor: "NUTRIX",
+    },
+  });
+  const url = res.init_point ?? res.sandbox_init_point;
+  if (!url) throw new Error("Mercado Pago não retornou a URL do checkout.");
+  return { url, simulado: false };
+}
+
+/** Assinatura recorrente (mensal) — cobrança automática via Mercado Pago. */
+export async function criarAssinatura(email: string, valor = PRECO_DIETA): Promise<CheckoutResult> {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) return { url: `${APP_URL}/pagamento?sim=assinatura`, simulado: true };
+  const client = new MercadoPagoConfig({ accessToken: token });
+  const pre = new PreApproval(client);
+  const res = await pre.create({
+    body: {
+      reason: "Assinatura NutriX (mensal)",
+      auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: valor, currency_id: "BRL" },
+      back_url: `${APP_URL}/dietas?assinou=1`,
+      payer_email: email,
+      status: "pending",
+    },
+  });
+  const url = (res as any).init_point;
+  if (!url) throw new Error("Mercado Pago não retornou a URL da assinatura.");
+  return { url, simulado: false };
 }
 
 /** Consulta o status de um pagamento (approved/pending/rejected). */
