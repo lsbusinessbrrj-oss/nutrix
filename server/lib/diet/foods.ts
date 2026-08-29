@@ -222,5 +222,8 @@ export function substituicoesDe(
     .filter((x) => grupoDe(x) === g && x.nome !== a.nome && passaRestricoes(x, r) && valor(x) > 0)
     .map((x) => ({ alimento: x, gramas: gramas * (base / valor(x)) }))
     .filter((s) => s.gramas >= 5 && s.gramas <= 600)
+    // Mais equivalentes primeiro (gramatura mais próxima da original) → boas trocas
+    // e variedade real da base (inclui os regionais bem-parecidos).
+    .sort((a2, b2) => Math.abs(a2.gramas - gramas) - Math.abs(b2.gramas - gramas))
     .slice(0, max);
 }
