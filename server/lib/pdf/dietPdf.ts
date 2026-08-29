@@ -140,11 +140,19 @@ function iconeRefeicao(mi: number) {
   return h(Svg, { width: 15, height: 15, viewBox: "0 0 16 16", style: { marginRight: 6 } }, kids);
 }
 
-// Folha grande (marca d'água) para o canto direito do card de dados.
+// Folha (broto vazado, nervuras) — marca d'água no canto direito do card.
 function folhaGrande() {
-  return h(Svg, { width: 90, height: 90, viewBox: "0 0 120 120", style: { position: "absolute", right: 4, top: 2, opacity: 0.1 } },
-    h(Path, { d: "M100 15 C 40 20 15 60 20 100 C 80 96 108 60 100 15 Z", fill: C.slogan1 }),
-    h(Path, { d: "M28 92 C 55 60 80 40 96 24", stroke: C.slogan2, strokeWidth: 2, fill: "none" }),
+  const st = { stroke: "#a9c7ad", strokeWidth: 1.7, fill: "none", strokeLinecap: "round" as const };
+  return h(Svg, { width: 92, height: 92, viewBox: "0 0 120 120", style: { position: "absolute", right: 2, top: 3, opacity: 0.85 } },
+    h(Path, { key: 1, d: "M92 20 C 44 26 22 72 33 110 C 83 101 108 58 92 20 Z", ...st }),
+    h(Path, { key: 2, d: "M35 106 C 56 77 77 49 90 26", ...st }),
+    h(Path, { key: 3, d: "M49 88 C 56 82 63 80 71 81", ...st }),
+    h(Path, { key: 4, d: "M45 76 C 39 80 33 85 29 91", ...st }),
+    h(Path, { key: 5, d: "M61 69 C 68 63 75 61 83 62", ...st }),
+    h(Path, { key: 6, d: "M57 57 C 51 61 45 66 41 73", ...st }),
+    h(Path, { key: 7, d: "M73 50 C 80 45 86 44 93 46", ...st }),
+    h(Path, { key: 8, d: "M39 101 C 20 97 12 84 16 69 C 33 73 42 86 39 101 Z", ...st }),
+    h(Path, { key: 9, d: "M18 84 C 26 82 32 88 36 96", ...st }),
   );
 }
 
