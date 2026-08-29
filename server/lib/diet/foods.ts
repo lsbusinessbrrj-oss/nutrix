@@ -181,9 +181,10 @@ export function alimentosDoId(id: string): Alimento[] {
   return nomes.map((n) => porNome.get(n)).filter((a): a is Alimento => !!a);
 }
 
-// Macro-chave por categoria (o que a substituição mantém equivalente).
+// Macro-chave por categoria (regra 10): proteína equivale por PROTEÍNA;
+// carboidrato, fruta, gordura e vegetais equivalem por CALORIAS.
 const MACRO_CHAVE: Record<Categoria, "c" | "p" | "f" | "kcal"> = {
-  carboidrato: "c", fruta: "c", proteina: "p", gordura: "f", vegetal: "kcal", bebida: "kcal",
+  proteina: "p", carboidrato: "kcal", fruta: "kcal", gordura: "kcal", vegetal: "kcal", bebida: "kcal",
 };
 
 // Grupo de substituição de cada alimento (troca só por itens do MESMO grupo:

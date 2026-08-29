@@ -13,11 +13,13 @@ import {
 
 interface Sub { name: string; quantity: string }
 interface FoodItem { name: string; quantity: string; substituicoes: Sub[] }
-interface Option { foods: FoodItem[]; kcal: number; obs?: string }
+interface Option { foods: FoodItem[]; kcal: number; protein: number; obs?: string }
 interface Meal { name: string; time: string; calories: number; protein: number; options: Option[] }
+export interface ResumoLinha { opcao: number; kcal: number; protein: number; pctKcal: number; pctProt: number }
 export interface PlanData {
   totalCalories: number; proteinTarget: number; waterMl: number;
   meals: Meal[];
+  resumo: { linhas: ResumoLinha[]; metaKcal: number; metaProt: number };
   summary: { tmb: number; tdee: number; proteinPerKg: number; carbs: number; fat: number; waterMl: number };
   orientacao: string[];
 }
@@ -69,43 +71,43 @@ function montarOpcaoCliente(
   };
   const acharVeg = (pred: (a: Alimento) => boolean) => por("vegetal").find(pred) ?? filtrarPorRestricoes("vegetal", restr).find(pred);
 
-  // Coleta os itens (com gramas iniciais); depois normaliza os itens variáveis
-  // para bater EXATAMENTE o alvo calórico da refeição (fixos não escalam).
+  // Estratégia (regras 1, 3, 4): dimensiona a PROTEÍNA para o alvo de proteína
+  // da refeição e o CARBOIDRATO para preencher as calorias restantes. Assim a
+  // opção bate proteína E kcal (as duas prioridades). Fixos não escalam.
   interface Ent { a: Alimento; g: number; override?: string; fixo?: boolean }
   const ents: Ent[] = [];
   const kOf = (e: Ent) => (e.override ? 0 : (e.a.kcal * e.g) / 100);
-  const somaVar = () => ents.reduce((s, e) => s + (e.fixo ? 0 : kOf(e)), 0);
+  const usada = () => ents.reduce((s, e) => s + kOf(e), 0);
 
   const prot = por("proteina")[0] ?? padrao("proteina", leve ? PROT_LEVE : undefined);
-  if (prot) {
+  if (prot && prot.p > 0) {
     const cap = leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL;
-    ents.push({ a: prot, g: arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), cap)) });
+    ents.push({ a: prot, g: arred5(Math.min(Math.max((targetProt / prot.p) * 100, 20), cap)) });
   }
   const carb = por("carboidrato")[0] ?? padrao("carboidrato");
 
   if (leve) {
     const fruta = por("fruta")[0] ?? padrao("fruta");
     if (fruta) ents.push({ a: fruta, g: fruta.gPorMedida });
-    if (carb) {
-      const rest = Math.max(targetKcal - somaVar(), 0);
-      ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 4)) });
-    }
   } else {
     const legume = acharVeg((a) => a.nome === "Brócolis cozido");
     const salada = acharVeg((a) => a.nome.includes("Salada"));
-    if (carb) {
-      const rest = Math.max(targetKcal - somaVar(), 0);
-      ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * 9)) });
-    }
     if (legume) ents.push({ a: legume, g: 100, fixo: true });
     if (salada) ents.push({ a: salada, g: salada.gPorMedida, override: "À vontade", fixo: true });
   }
+  if (carb) {
+    const rest = Math.max(targetKcal - usada(), 0);
+    const mult = leve ? 4 : 9;
+    ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * mult)) });
+  }
 
-  // Normaliza os itens variáveis para o alvo calórico (a conta fecha).
-  const fixK = ents.reduce((s, e) => s + (e.fixo ? kOf(e) : 0), 0);
-  const varK = somaVar();
-  const fator = varK > 0 ? Math.max(0.35, Math.min(3, (targetKcal - fixK) / varK)) : 1;
-  for (const e of ents) if (!e.fixo) e.g = arred5(e.g * fator);
+  // Ajuste (regras 3/4): resolve fp/fc para bater proteína E calorias do alvo.
+  const marca = ents.map((e) => ({
+    kcal: kOf(e), prot: e.override ? 0 : (e.a.p * e.g) / 100,
+    fixo: !!e.fixo, prote: !e.fixo && !e.override && ehProteico(e.a.kcal, e.a.p),
+  }));
+  const { fp, fc } = resolverEscalas(marca, targetKcal, targetProt);
+  ents.forEach((e, i) => { if (!e.fixo) e.g = arred5(e.g * (marca[i].prote ? fp : fc)); });
 
   const foods: FoodItem[] = ents.map((e) => ({
     name: e.a.nome,
@@ -113,7 +115,8 @@ function montarOpcaoCliente(
     substituicoes: subsFor(e.a.nome, e.g, restr),
   }));
   const kcal = ents.reduce((s, e) => s + kOf(e), 0);
-  return { foods, kcal: Math.round(kcal) };
+  const protein = ents.reduce((s, e) => s + (e.override ? 0 : (e.a.p * e.g) / 100), 0);
+  return { foods, kcal: Math.round(kcal), protein: Math.round(protein) };
 }
 
 // ── Opção da referência ──
@@ -126,6 +129,10 @@ function kcalBaseOpcao(op: RefOpcao): { fixo: number; variavel: number } {
     if (it.fixo) fixo += k; else variavel += k;
   }
   return { fixo, variavel };
+}
+// Proteína de base de uma opção (soma dos itens, na gramatura de referência).
+function protBaseOpcao(op: RefOpcao): number {
+  return op.itens.reduce((s, it) => s + (it.livre ? 0 : (it.p100 * it.baseG) / 100), 0);
 }
 function refItemGramas(it: RefItem, s: number) { return it.livre ? 0 : it.fixo ? it.baseG : Math.round(it.baseG * s * 10) / 10; }
 function refItemQtd(it: RefItem, s: number, g: number): string {
@@ -151,50 +158,91 @@ function escalarQtdTroca(q: string, s: number): string {
   return q;
 }
 
-// Escala a opção de referência para bater EXATAMENTE o alvo calórico da refeição
-// (itens fixos ficam; os variáveis absorvem a diferença). Assim toda opção de
-// uma refeição soma o mesmo valor e "a conta fecha" em qualquer escolha.
-function refOpcaoToOption(op: RefOpcao, alvoKcal: number): Option {
-  const { fixo, variavel } = kcalBaseOpcao(op);
-  const s = variavel > 0 ? Math.min(2.5, Math.max(0.4, (alvoKcal - fixo) / variavel)) : 1;
-  const foods = op.itens.map((it) => {
-    const g = refItemGramas(it, s);
-    const sItem = it.fixo || it.livre ? 1 : s; // troca escala junto com o item
-    const subs = (REF_SUBS[it.name] ?? []).map((x) => ({ name: x.name, quantity: escalarQtdTroca(x.quantity, sItem) }));
-    return { name: it.name, quantity: refItemQtd(it, s, g), substituicoes: subs };
+// Um item é "proteico" quando ≥30% das calorias vêm de proteína (frango, ovo,
+// whey, queijo…). Caso contrário é fonte de carbo/energia (arroz, pão, banana…).
+const ehProteico = (kcal100: number, p100: number) => kcal100 > 0 && (p100 * 4) / kcal100 >= 0.3;
+
+// Resolve dois fatores de escala (fp p/ itens proteicos, fc p/ os demais) para
+// a opção bater ao mesmo tempo o alvo de PROTEÍNA e o alvo de CALORIAS.
+// Itens fixos não escalam. (Sistema linear 2×2.)
+function resolverEscalas(itens: { kcal: number; prot: number; fixo: boolean; prote: boolean }[], alvoK: number, alvoP: number): { fp: number; fc: number } {
+  let fK = 0, fP = 0, pK = 0, pP = 0, cK = 0, cP = 0;
+  for (const it of itens) {
+    if (it.fixo) { fK += it.kcal; fP += it.prot; }
+    else if (it.prote) { pK += it.kcal; pP += it.prot; }
+    else { cK += it.kcal; cP += it.prot; }
+  }
+  const clamp = (x: number) => Math.max(0.35, Math.min(2.6, x));
+  const c1 = alvoP - fP, c2 = alvoK - fK, det = pP * cK - cP * pK;
+  if (Math.abs(det) > 1e-6) return { fp: clamp((c1 * cK - cP * c2) / det), fc: clamp((pP * c2 - c1 * pK) / det) };
+  const nonK = pK + cK; const f = nonK > 0 ? clamp((alvoK - fK) / nonK) : 1; // sem separação → escala por kcal
+  return { fp: f, fc: f };
+}
+
+// Escala a opção de referência para bater o alvo de PROTEÍNA e de CALORIAS da
+// refeição (regras 3 e 4). Assim as 3 opções ficam equivalentes e "a conta fecha".
+function refOpcaoToOption(op: RefOpcao, alvoKcal: number, alvoProt: number): Option {
+  const xs = op.itens.map((it) => ({
+    it, kcal: (it.kcal100 * it.baseG) / 100, prot: (it.p100 * it.baseG) / 100,
+    fixo: !!(it.fixo || it.livre), prote: !it.fixo && !it.livre && ehProteico(it.kcal100, it.p100),
+  }));
+  const { fp, fc } = resolverEscalas(xs, alvoKcal, alvoProt);
+  const fatorDe = (x: typeof xs[number]) => (x.fixo ? 1 : x.prote ? fp : fc);
+  const foods = xs.map((x) => {
+    const s = fatorDe(x);
+    const g = x.it.livre ? 0 : Math.round(x.it.baseG * s * 10) / 10;
+    const subs = (REF_SUBS[x.it.name] ?? []).map((y) => ({ name: y.name, quantity: escalarQtdTroca(y.quantity, x.fixo ? 1 : s) }));
+    return { name: x.it.name, quantity: refItemQtd(x.it, s, g), substituicoes: subs };
   });
-  const kcal = op.itens.reduce((acc, it) => acc + (it.kcal100 * refItemGramas(it, s)) / 100, 0);
-  return { foods, kcal: Math.round(kcal), obs: op.obs };
+  const kcal = xs.reduce((a, x) => a + x.kcal * fatorDe(x), 0);
+  const protein = xs.reduce((a, x) => a + x.prot * fatorDe(x), 0);
+  return { foods, kcal: Math.round(kcal), protein: Math.round(protein), obs: op.obs };
 }
 
 export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null, selecoes?: Selecoes): PlanData {
   const metas = calcularMetas(perfil);
   const restr = restricoesDe(healthConditions);
 
-  // Alvo de cada refeição = objetivo diário distribuído na proporção da dieta de
-  // referência (Opção 1). A soma dos alvos = objetivo diário EXATO, então
-  // escolher qualquer opção em cada refeição sempre fecha o kcal/dia.
+  // Distribuição da meta por refeição (regra 4): kcal e proteína são repartidos
+  // na proporção da dieta de referência (Opção 1). As somas dos alvos batem o
+  // objetivo diário EXATO, então escolher qualquer opção sempre fecha a conta.
   const pesoRef = REF_REFEICOES.map((ref) => { const b = kcalBaseOpcao(ref.opcoes[0]); return b.fixo + b.variavel; });
   const totalRef = pesoRef.reduce((a, b) => a + b, 0);
+  const protRef = REF_REFEICOES.map((ref) => protBaseOpcao(ref.opcoes[0]));
+  const totalProtRef = protRef.reduce((a, b) => a + b, 0) || 1;
 
   const meals: Meal[] = REF_REFEICOES.map((ref, mi) => {
-    const alvo = metas.calorias * (pesoRef[mi] / totalRef); // alvo calórico da refeição
-    const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo));
+    const alvo = metas.calorias * (pesoRef[mi] / totalRef);          // alvo kcal da refeição
+    const alvoProt = metas.proteinaG * (protRef[mi] / totalProtRef); // alvo proteína da refeição
     const leve = ref.key === "cafe_manha" || ref.key === "lanche_tarde";
+    const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo, alvoProt));
 
-    // Opção 1 = escolha do cliente (se houver); senão só as opções de referência.
+    // Opção 1 = escolha do cliente (se houver); depois as opções de referência.
     const ids = selecoes?.[ref.key] ?? [];
     const escolhidos = ids.flatMap(alimentosDoId).filter((a) => passaRestricoes(a, restr));
-    const targetProt = Math.round(metas.proteinaG * (leve ? 0.15 : 0.3));
     let options: Option[] = escolhidos.length
-      ? [montarOpcaoCliente(escolhidos, alvo, targetProt, leve, restr, mi), ...refOptions]
-      : refOptions;
-    options = options.slice(0, 3); // no máximo 3 opções por refeição (1, 2 e 3)
-    return { name: ref.name, time: ref.time, calories: Math.round(alvo), protein: 0, options };
+      ? [montarOpcaoCliente(escolhidos, alvo, alvoProt, leve, restr, mi), ...refOptions]
+      : [...refOptions];
+
+    // Regra 2: EXATAMENTE 3 opções. Completa com opções da base se faltar.
+    let seed = mi + 3;
+    while (options.length < 3) options.push(montarOpcaoCliente([], alvo, alvoProt, leve, restr, seed++));
+    options = options.slice(0, 3);
+
+    return { name: ref.name, time: ref.time, calories: Math.round(alvo), protein: Math.round(alvoProt), options };
+  });
+
+  // Regras 14/15: somatório diário de cada linha de opção (1, 2 e 3) vs meta.
+  const metaKcal = Math.round(metas.calorias), metaProt = metas.proteinaG;
+  const linhas: ResumoLinha[] = [0, 1, 2].map((i) => {
+    const kcal = meals.reduce((s, m) => s + (m.options[i]?.kcal ?? 0), 0);
+    const protein = meals.reduce((s, m) => s + (m.options[i]?.protein ?? 0), 0);
+    return { opcao: i + 1, kcal, protein, pctKcal: Math.round((kcal / metaKcal) * 100), pctProt: Math.round((protein / metaProt) * 100) };
   });
 
   return {
-    totalCalories: Math.round(metas.calorias), proteinTarget: metas.proteinaG, waterMl: metas.aguaMl, meals,
+    totalCalories: metaKcal, proteinTarget: metaProt, waterMl: metas.aguaMl, meals,
+    resumo: { linhas, metaKcal, metaProt },
     summary: { tmb: metas.tmb, tdee: metas.tdee, proteinPerKg: metas.proteinaPorKg, carbs: metas.carboidratoG, fat: metas.gorduraG, waterMl: metas.aguaMl },
     orientacao: orientacoes(metas.aguaMl),
   };

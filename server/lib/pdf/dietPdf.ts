@@ -156,6 +156,42 @@ function folhaGrande() {
   );
 }
 
+// Célula da tabela de resumo.
+function celR(txt: string, w: string, bold: boolean, align: "left" | "center", color?: string) {
+  return h(Text, { style: { width: w, fontSize: 8, fontFamily: bold ? "Helvetica-Bold" : "Helvetica", color: color ?? C.texto, textAlign: align } }, txt);
+}
+
+// Quadro "Resumo nutricional das opções" (Dia Opção 1/2/3 vs meta + % atingido).
+function resumoTabela(plano: PlanData) {
+  const R = plano.resumo;
+  const head = h(View, { style: { flexDirection: "row", backgroundColor: C.verde, paddingVertical: 3, paddingHorizontal: 6, borderTopLeftRadius: 4, borderTopRightRadius: 4 } },
+    celR("Escolha diária", "28%", true, "left", "#fff"),
+    celR("Calorias", "18%", true, "center", "#fff"),
+    celR("Meta kcal", "16%", true, "center", "#fff"),
+    celR("Proteína", "16%", true, "center", "#fff"),
+    celR("Meta prot.", "14%", true, "center", "#fff"),
+    celR("% kcal", "8%", true, "center", "#fff"),
+  );
+  const rows = R.linhas.map((l, i) => h(View, {
+    key: i, style: { flexDirection: "row", paddingVertical: 3, paddingHorizontal: 6, backgroundColor: i % 2 ? "#f3f8f4" : "#ffffff", borderBottom: `0.5 solid ${C.borda}` },
+  },
+    celR(`Todas as Opções ${l.opcao}`, "28%", true, "left"),
+    celR(`${l.kcal} kcal`, "18%", false, "center"),
+    celR(`${R.metaKcal} kcal`, "16%", false, "center"),
+    celR(`${l.protein} g`, "16%", false, "center"),
+    celR(`${R.metaProt} g`, "14%", false, "center"),
+    celR(`${l.pctKcal}%`, "8%", true, "center", C.verde),
+  ));
+  const pcts = h(Text, { style: { fontSize: 7.5, color: C.cinza, marginTop: 4, lineHeight: 1.4 } },
+    R.linhas.map((l) => `Opção ${l.opcao}: ${l.pctKcal}% da meta calórica · ${l.pctProt}% da meta proteica`).join("\n"));
+  return h(View, { minPresenceAhead: 110 },
+    h(View, { style: { marginTop: 12, marginBottom: 5, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
+      h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Resumo nutricional das opções")),
+    h(View, { style: { border: `1 solid ${C.borda}`, borderRadius: 4 } }, head, ...rows),
+    pcts,
+  );
+}
+
 function rodape() {
   return h(Text, { style: s.rodape, fixed: true }, "NutriX · Saúde que Alimenta. Treino que Transforma. · Material educativo, não substitui acompanhamento profissional.");
 }
@@ -222,6 +258,18 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
+    // Regra 13: instruções obrigatórias de como seguir o plano.
+    h(View, { style: { backgroundColor: "#FBF6E4", border: "1 solid #EAD9A0", borderRadius: 6, padding: 8, marginTop: 4, marginBottom: 2 } },
+      h(Text, { style: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: C.amarelo, marginBottom: 3 } }, "Como seguir seu plano alimentar"),
+      ...[
+        "Em cada refeição, escolha apenas UMA das 3 opções apresentadas.",
+        "Faça todas as refeições do dia, escolhendo 1 opção em cada horário.",
+        "As 3 opções têm valores nutricionais semelhantes — pode alternar entre elas conforme sua preferência e rotina.",
+        "Não consuma as 3 opções juntas: cada opção é uma refeição completa.",
+        "Respeite as quantidades indicadas nos alimentos e nas substituições.",
+      ].map((t, i) => h(Text, { key: i, style: { fontSize: 8, color: C.texto, marginBottom: 1, lineHeight: 1.3 } }, "•  " + t)),
+    ),
+
     // Conteúdo completo fluindo continuamente (sem quebras fixas nem espaços
     // vazios); o título não fica órfão no fim da página.
     ...plano.meals.map((meal, mi) =>
@@ -232,16 +280,20 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         ),
         ...meal.options.map((opt, oi) =>
           h(View, { key: oi, minPresenceAhead: 30 },
-            h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal`),
+            h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
         ),
       ),
     ),
 
+    // Quadro resumo das opções (regras 14/15).
+    resumoTabela(plano),
+
     // Orientações fluem logo após as refeições (sem página vazia).
     h(View, { minPresenceAhead: 80 },
-      h(Text, { style: s.mealTitle }, "Orientação nutricional"),
+      h(View, { style: { marginTop: 12, marginBottom: 4, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
+        h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Orientação nutricional")),
       h(View, { style: { ...s.header, marginTop: 4 } },
         ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
       ),
