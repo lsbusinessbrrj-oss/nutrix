@@ -75,10 +75,10 @@ export default function Signup() {
           <label className="flex items-start gap-2 cursor-pointer">
             <input type="checkbox" checked={terms} onChange={e => setTerms(e.target.checked)} className="mt-0.5 accent-[#43A047]" />
             <span className="text-xs text-gray-600">
-              Eu aceito os{" "}
-              <a href="#" className="text-[#43A047] underline">Termos e Condições</a>{" "}
+              Li e aceito os{" "}
+              <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#43A047] underline">Termos e Condições</a>{" "}
               e a{" "}
-              <a href="#" className="text-[#43A047] underline">Política de Privacidade</a>
+              <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#43A047] underline">Política de Privacidade</a>
             </span>
           </label>
           <button

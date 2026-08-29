@@ -122,6 +122,20 @@ export async function getUserByPhoneDigits(phoneDigits: string) {
   return todos.find((u) => (u.phone ?? "").replace(/\D/g, "").slice(-11) === alvo);
 }
 
+/** Exclui a conta e TODOS os dados do usuário (LGPD — direito ao esquecimento). */
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(dietPlans).where(eq(dietPlans.userId, userId));
+  await db.delete(userFoodSelections).where(eq(userFoodSelections.userId, userId));
+  await db.delete(payments).where(eq(payments.userId, userId));
+  await db.delete(streakDays).where(eq(streakDays.userId, userId));
+  await db.delete(achievements).where(eq(achievements.userId, userId));
+  await db.delete(workoutPlans).where(eq(workoutPlans.userId, userId));
+  await db.delete(supportMessages).where(eq(supportMessages.userId, userId));
+  await db.delete(users).where(eq(users.id, userId));
+}
+
 export async function createLocalUser(params: {
   email: string;
   passwordHash: string;

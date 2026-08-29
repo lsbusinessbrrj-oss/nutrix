@@ -192,6 +192,39 @@ function PerfilTab({ user, p, streak, navigate }: any) {
           <MessageCircle size={16} /> Falar com o suporte
         </button>
       </div>
+
+      <ContaSection navigate={navigate} />
+    </div>
+  );
+}
+
+function ContaSection({ navigate }: { navigate: (to: string) => void }) {
+  const utils = trpc.useUtils();
+  const cancelar = trpc.auth.cancelarAssinatura.useMutation();
+  const excluir = trpc.auth.excluirConta.useMutation();
+
+  async function handleCancelar() {
+    if (!window.confirm("Deseja cancelar sua assinatura? Você deixa de ter acesso ao plano e não haverá novas cobranças.")) return;
+    try { await cancelar.mutateAsync(); toast.success("Assinatura cancelada."); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+  async function handleExcluir() {
+    if (!window.confirm("EXCLUIR CONTA: isso cancela a assinatura e apaga TODOS os seus dados permanentemente. Não pode ser desfeito. Confirmar?")) return;
+    try {
+      await excluir.mutateAsync();
+      await utils.auth.me.invalidate();
+      toast.success("Conta excluída.");
+      navigate("/login");
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  return (
+    <div className="mt-10 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
+      <p className="text-[10px] uppercase tracking-wider text-gray-300 font-semibold">Conta</p>
+      <button onClick={handleCancelar} disabled={cancelar.isPending}
+        className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50">Cancelar assinatura</button>
+      <button onClick={handleExcluir} disabled={excluir.isPending}
+        className="text-xs text-gray-300 hover:text-red-500 disabled:opacity-50">Excluir minha conta</button>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { conferirSenha, hashSenha } from "../auth/password";
 import { assinarSessao } from "../auth/session";
+import { protectedProcedure } from "../_core/trpc";
 
 // Nunca devolver o hash da senha para o cliente.
 function semSenha(user: User | null) {
@@ -74,4 +75,19 @@ export const authRouter = router({
       await iniciarSessao(ctx, user.id);
       return { success: true, user: semSenha(user) };
     }),
+
+  // Cancela apenas a assinatura (mantém a conta).
+  cancelarAssinatura: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.updateUserProfile(ctx.user.id, { hasPaidPlan: false });
+    // Cancelamento no Mercado Pago é feito com o id da assinatura (quando MP configurado).
+    return { ok: true };
+  }),
+
+  // Exclui a conta e todos os dados (cancela a assinatura junto). LGPD.
+  excluirConta: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.deleteUser(ctx.user.id);
+    const opts = getSessionCookieOptions(ctx.req);
+    ctx.res.clearCookie(COOKIE_NAME, { ...opts, maxAge: -1 });
+    return { ok: true };
+  }),
 });
