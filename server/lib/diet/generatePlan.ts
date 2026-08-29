@@ -25,13 +25,20 @@ export interface PlanData {
 /** Chave da refeição usada ao salvar as escolhas (saveFoodSelections). */
 export type Selecoes = Record<string, string[]>;
 
+// frac = fração das calorias; protFrac = fração da proteína (concentrada nas
+// refeições principais); leve = café/lanches (proteína modesta, sem carne pesada).
 const REFEICOES = [
-  { name: "Café da manhã", time: "08:30", frac: 0.25, selKey: "cafe_manha" },
-  { name: "Lanche da manhã", time: "10:30", frac: 0.10, selKey: "lanche_manha" },
-  { name: "Almoço", time: "12:00", frac: 0.30, selKey: "almoco" },
-  { name: "Café da Tarde", time: "17:00", frac: 0.13, selKey: "lanche_tarde" },
-  { name: "Jantar", time: "21:00", frac: 0.22, selKey: "janta" },
+  { name: "Café da manhã", time: "08:30", frac: 0.25, protFrac: 0.15, leve: true, selKey: "cafe_manha" },
+  { name: "Lanche da manhã", time: "10:30", frac: 0.10, protFrac: 0.10, leve: true, selKey: "lanche_manha" },
+  { name: "Almoço", time: "12:00", frac: 0.30, protFrac: 0.30, leve: false, selKey: "almoco" },
+  { name: "Café da Tarde", time: "17:00", frac: 0.13, protFrac: 0.15, leve: true, selKey: "lanche_tarde" },
+  { name: "Jantar", time: "21:00", frac: 0.22, protFrac: 0.30, leve: false, selKey: "janta" },
 ];
+
+// Proteínas leves (para café/lanches). Carnes ficam nas refeições principais.
+const PROT_LEVE = new Set(["Ovo", "Queijo muçarela", "Iogurte natural desnatado", "Whey protein", "Presunto magro", "Tofu firme"]);
+const CAP_PROT_LEVE = 60;   // g — porção máxima de proteína em refeição leve
+const CAP_PROT_PRINCIPAL = 300;
 
 const arred5 = (g: number) => Math.max(5, Math.round(g / 5) * 5);
 const pick = <T,>(arr: T[], i: number) => arr[((i % arr.length) + arr.length) % arr.length];
@@ -74,11 +81,16 @@ function criarItem(a: Alimento, gramas: number, restr: Set<Restricao>): FoodItem
 /** Monta UMA opção de refeição a partir de uma base de alimentos escolhidos. */
 function montarOpcao(
   targetKcal: number, targetProt: number,
-  base: Alimento[], restr: Set<Restricao>, seed: number,
+  base: Alimento[], restr: Set<Restricao>, seed: number, leve: boolean,
 ): Option {
   const por = (c: Categoria) => base.filter((a) => a.cat === c);
   const padrao = (c: Categoria) => {
-    const pool = filtrarPorRestricoes(c, restr);
+    let pool = filtrarPorRestricoes(c, restr);
+    // Em refeições leves, a proteína padrão é leve (ovo/queijo/iogurte…), sem carne.
+    if (c === "proteina" && leve) {
+      const leves = pool.filter((a) => PROT_LEVE.has(a.nome));
+      if (leves.length) pool = leves;
+    }
     return pool.length ? pick(pool, seed) : undefined;
   };
 
@@ -93,7 +105,8 @@ function montarOpcao(
   let kcal = 0;
 
   if (prot) {
-    const g = arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), 300));
+    const cap = leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL;
+    const g = arred5(Math.min(Math.max((targetProt / prot.p) * 100, 30), cap));
     foods.push(criarItem(prot, g, restr));
     kcal += kcalDe(prot, g);
   }
@@ -105,10 +118,26 @@ function montarOpcao(
   }
   if (carb) {
     const restante = Math.max(targetKcal - kcal, 0);
-    // Pelo menos 1 medida caseira do carbo (nunca uma porção simbólica de 5 g).
-    const g = arred5(Math.min(Math.max((restante / carb.kcal) * 100, carb.gPorMedida), 400));
+    // Entre 1 medida caseira e um teto realista (evita "7 fatias de pão").
+    const maxG = carb.gPorMedida * (leve ? 4 : 9);
+    const g = arred5(Math.min(Math.max((restante / carb.kcal) * 100, carb.gPorMedida), maxG));
     foods.push(criarItem(carb, g, restr));
     kcal += kcalDe(carb, g);
+  }
+
+  // 4) Gordura para fechar as calorias (café com requeijão; almoço com azeite),
+  //    como na referência — evita encher a refeição só de carboidrato.
+  const faltam = targetKcal - kcal;
+  if (faltam > 80) {
+    const pool = filtrarPorRestricoes("gordura", restr);
+    const pref = leve
+      ? ["Requeijão light", "Cream cheese light", "Pasta de amendoim"]
+      : ["Azeite de oliva", "Pasta de amendoim"];
+    const gord = pool.find((a) => pref.includes(a.nome)) ?? pool[0];
+    if (gord) {
+      const g = arred5(Math.min((faltam / gord.kcal) * 100, gord.gPorMedida * 3));
+      if (g >= 5) { foods.push(criarItem(gord, g, restr)); kcal += kcalDe(gord, g); }
+    }
   }
 
   return { foods, kcal: Math.round(kcal) };
@@ -124,7 +153,7 @@ export function gerarPlano(
 
   const meals: Meal[] = REFEICOES.map((r, mi) => {
     const targetKcal = Math.round(metas.calorias * r.frac);
-    const targetProt = Math.round(metas.proteinaG * r.frac);
+    const targetProt = Math.round(metas.proteinaG * r.protFrac);
 
     // Alimentos escolhidos pelo cliente para esta refeição (respeitando restrições).
     const ids = selecoes?.[r.selKey] ?? [];
@@ -133,9 +162,9 @@ export function gerarPlano(
     // Opção 1 = escolha do cliente (completada com carbo+proteína).
     // Opções 2 e 3 = variações da base.
     const options: Option[] = [
-      montarOpcao(targetKcal, targetProt, escolhidos, restr, mi * 7),
-      montarOpcao(targetKcal, targetProt, [], restr, mi * 7 + 3),
-      montarOpcao(targetKcal, targetProt, [], restr, mi * 7 + 5),
+      montarOpcao(targetKcal, targetProt, escolhidos, restr, mi * 7, r.leve),
+      montarOpcao(targetKcal, targetProt, [], restr, mi * 7 + 3, r.leve),
+      montarOpcao(targetKcal, targetProt, [], restr, mi * 7 + 5, r.leve),
     ];
 
     // kcal do card = soma real da Opção 1 (o que está no prato).

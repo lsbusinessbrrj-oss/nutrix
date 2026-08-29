@@ -13,7 +13,7 @@ await db.updateUserProfile(user.id, {
 });
 
 const selecoes: Record<string, string[]> = {
-  cafe_manha: ["cm_pao_frango", "cm_banana"],
+  cafe_manha: ["cm_pao_ovo", "cm_banana"],
   lanche_manha: ["lm_maca"], // só fruta -> deve completar com carbo + proteína
   almoco: ["al_arroz", "al_frango_grelhado", "al_salada_alface_tomate"],
   lanche_tarde: ["lt_tapioca_frango"],
