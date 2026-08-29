@@ -9,11 +9,14 @@ import type { PlanData } from "../diet/generatePlan";
 
 const h = React.createElement;
 
-// Cores: verde da marca + amarelo forte (pedido da nutri) no lugar do vermelho.
+// Paleta NutriX (mockup): verdes suaves + dourado, cabeçalho claro com folhagem.
 const C = {
-  verde: "#166534", verde2: "#16a34a", verdeClaro: "#dcfce7",
-  amarelo: "#CA8A04", amareloBg: "#FEF3C7",
-  cinza: "#475569", cinzaClaro: "#f1f5f9", borda: "#e2e8f0", texto: "#0f172a", agua: "#0284c7",
+  verde: "#1f5a34", verde2: "#7bbf8c", verdeClaro: "#eef6f0",
+  amarelo: "#9C6A15", amareloBg: "#FBF0CF",
+  cinza: "#5b6b62", cinzaClaro: "#f5f9f6", borda: "#dce8e0", texto: "#233029", agua: "#0284c7",
+  // Cabeçalho / marca
+  wordNutri: "#2f6b3f", wordX: "#E1962F", slogan1: "#3f8f57", slogan2: "#256b38",
+  sw1: "#dcece0", sw2: "#bcd8c3", sw3: "#8bb894", folha: "#6fae7c", dots: "#cbb26b",
 };
 
 let LOGO: string | null | undefined;
@@ -42,7 +45,7 @@ const s = StyleSheet.create({
   metaBox: { width: "20%", paddingVertical: 2 },
   metaVal: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" },
   metaLbl: { fontSize: 6.5, color: C.cinza, textTransform: "uppercase" },
-  mealTitle: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold", marginTop: 13, marginBottom: 3, borderBottom: `1 solid ${C.verde2}`, paddingBottom: 3 },
+  mealTitle: { flexDirection: "row", alignItems: "center", marginTop: 13, marginBottom: 3, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 },
   optTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.amarelo, marginTop: 8, marginBottom: 3, backgroundColor: C.amareloBg, paddingVertical: 2, paddingHorizontal: 6, borderRadius: 3, alignSelf: "flex-start" },
   itemRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 2, borderBottom: `0.5 solid ${C.borda}` },
   itemName: { width: "62%" },
@@ -52,71 +55,78 @@ const s = StyleSheet.create({
   rodape: { position: "absolute", bottom: 14, left: 30, right: 30, fontSize: 7, color: C.cinza, textAlign: "center", borderTop: `0.5 solid ${C.borda}`, paddingTop: 5 },
 });
 
-// Ícones de alimentos (desenhados em ~26pt na origem) para o fundo do PDF.
-const APPLE = "#E53935", BANANA = "#EAB308", BROC = "#22a35a", CARROT = "#F97316", FISH = "#64748B", WATER = "#38BDF8", LEAF = "#16a34a";
-const ICONES: (() => any[])[] = [
-  () => [ // maçã
-    h(Circle, { key: 1, cx: 9, cy: 15, r: 7, fill: APPLE }),
-    h(Circle, { key: 2, cx: 16, cy: 15, r: 7, fill: APPLE }),
-    h(Path, { key: 3, d: "M12 6 C13 4 16 4 17 6 C15 8 13 8 12 6 Z", fill: LEAF }),
-  ],
-  () => [ // banana
-    h(Path, { key: 1, d: "M5 9 C10 22 20 22 25 12 C22 20 12 20 8 9 Z", fill: BANANA }),
-  ],
-  () => [ // brócolis
-    h(Circle, { key: 1, cx: 9, cy: 9, r: 5, fill: BROC }),
-    h(Circle, { key: 2, cx: 16, cy: 9, r: 5, fill: BROC }),
-    h(Circle, { key: 3, cx: 12, cy: 5, r: 5, fill: BROC }),
-    h(Path, { key: 4, d: "M10 12 L15 12 L14 22 L11 22 Z", fill: "#4d7c0f" }),
-  ],
-  () => [ // peixe
-    h(Ellipse, { key: 1, cx: 12, cy: 14, rx: 10, ry: 6, fill: FISH }),
-    h(Path, { key: 2, d: "M22 14 L28 9 L28 19 Z", fill: FISH }),
-    h(Circle, { key: 3, cx: 8, cy: 12, r: 1.2, fill: "#ffffff" }),
-  ],
-  () => [ // gota d'água
-    h(Path, { key: 1, d: "M13 4 C7 13 7 20 13 22 C19 20 19 13 13 4 Z", fill: WATER }),
-  ],
-  () => [ // cenoura
-    h(Path, { key: 1, d: "M7 9 L17 9 L12 26 Z", fill: CARROT }),
-    h(Path, { key: 2, d: "M9 9 L7 3 M12 9 L12 2 M15 9 L17 3", stroke: LEAF, strokeWidth: 1.6, fill: "none" }),
-  ],
-];
+// Uma folha (desenhada na origem, ~24pt) — marca d'água do fundo.
+function folhaEls(): any[] {
+  return [
+    h(Path, { key: 1, d: "M0 12 C 4 -2 20 -2 24 4 C 20 18 4 18 0 12 Z", fill: C.folha }),
+    h(Path, { key: 2, d: "M2 11 C 8 6 16 4 22 5", stroke: "#4e8a5f", strokeWidth: 0.8, fill: "none" }),
+  ];
+}
 
-// Fundo: grade organizada de alimentos, suave (opacidade 0,10), em toda página.
+// Fundo: folhas suaves espalhadas (opacidade baixa), em toda a página.
 function fundo() {
   const cells: any[] = [];
-  let idx = 0;
-  for (let row = 0; row < 8; row++) {
-    const yy = 60 + row * 100;
-    const offset = row % 2 ? 60 : 0;
+  let i = 0;
+  for (let row = 0; row < 9; row++) {
+    const yy = 90 + row * 88;
+    const offset = row % 2 ? 58 : 0;
     for (let col = 0; col < 5; col++) {
-      const xx = 30 + offset + col * 120;
+      const xx = 40 + offset + col * 115;
       if (xx > 560) continue;
-      cells.push(h(G, { key: `${row}-${col}`, transform: `translate(${xx} ${yy})`, opacity: 0.1 }, ICONES[idx % ICONES.length]()));
-      idx++;
+      const rot = (i * 57) % 360;
+      cells.push(h(G, { key: `${row}-${col}`, transform: `translate(${xx} ${yy}) rotate(${rot})`, opacity: 0.06 }, folhaEls()));
+      i++;
     }
   }
   return h(Svg, { fixed: true, style: { position: "absolute", top: 0, left: 0, width: 595, height: 842 }, viewBox: "0 0 595 842" }, cells);
 }
 
-// Banner do topo (estilo faixa com onda), nas cores NutriX + logo à direita.
+// Cabeçalho do topo (mockup): fundo claro com folhagem verde, marca "NutriX"
+// grande (verde + dourado), slogan e o mascote à direita, + grade de pontos.
 function bannerTopo() {
   const src = logo();
-  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 132 } },
-    h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 132 }, viewBox: "0 0 595 132" },
-      // Onda verde principal
-      h(Path, { d: "M0 0 H595 V92 C 470 128 360 74 235 100 C 150 118 70 112 0 98 Z", fill: C.verde }),
-      // Onda de destaque (verde mais claro), à direita
-      h(Path, { d: "M300 100 C 410 78 520 110 595 90 L595 128 C 500 142 400 128 340 112 C 322 106 308 104 300 100 Z", fill: "#2E9E5B" }),
+  const dots: any[] = [];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++)
+    dots.push(h(Circle, { key: `d${r}${c}`, cx: 360 + c * 13, cy: 18 + r * 13, r: 1.6, fill: C.dots, opacity: 0.5 }));
+  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 200, backgroundColor: "#fbfdfb" } },
+    h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 200 }, viewBox: "0 0 595 200" },
+      ...dots,
+      // Folhagem (3 camadas de verde)
+      h(Path, { d: "M120 -20 C 260 40 300 120 470 90 C 560 74 610 120 660 60 L 660 -40 L 120 -40 Z", fill: C.sw1 }),
+      h(Path, { d: "M170 -20 C 300 44 340 118 520 96 C 585 86 620 60 660 40 L 660 -40 L 170 -40 Z", fill: C.sw2 }),
+      h(Path, { d: "M300 60 C 380 40 470 70 560 40 C 610 24 560 96 470 104 C 380 112 330 92 300 60 Z", fill: C.sw3, opacity: 0.55 }),
+      // Folhinhas decorativas à esquerda
+      h(Path, { d: "M96 40 C 106 30 126 30 136 40 C 126 50 106 50 96 40 Z", fill: C.folha }),
+      h(Path, { d: "M150 66 C 158 58 174 58 182 66 C 174 74 158 74 150 66 Z", fill: C.folha }),
+      h(Path, { d: "M120 96 C 128 88 144 88 152 96 C 144 104 128 104 120 96 Z", fill: C.folha }),
+      h(Path, { d: "M108 28 C 118 44 118 60 112 78", stroke: C.folha, strokeWidth: 2, fill: "none" }),
     ),
-    // NutriX com o X em amarelo
-    h(Text, { style: { position: "absolute", top: 26, left: 34, fontSize: 34, fontFamily: "Helvetica-Bold", color: "#ffffff" } },
-      "Nutri", h(Text, { style: { color: "#FCD34D" } }, "X")),
-    h(Text, { style: { position: "absolute", top: 72, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Saúde que Alimenta."),
-    h(Text, { style: { position: "absolute", top: 87, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Treino que Transforma."),
-    src ? h(Image, { src, style: { position: "absolute", top: 16, left: 470, width: 96, height: 96, borderRadius: 48 } }) : null,
+    // Marca NutriX (Nutri verde + X dourado)
+    h(Text, { style: { position: "absolute", top: 44, left: 38, fontSize: 44, fontFamily: "Helvetica-Bold" } },
+      h(Text, { style: { color: C.wordNutri } }, "Nutri"), h(Text, { style: { color: C.wordX } }, "X")),
+    h(Text, { style: { position: "absolute", top: 100, left: 40, color: C.slogan1, fontSize: 15 } }, "Saúde que Alimenta."),
+    h(Text, { style: { position: "absolute", top: 118, left: 40, color: C.slogan2, fontSize: 15, fontFamily: "Helvetica-Bold" } }, "Treino que Transforma."),
+    src ? h(Image, { src, style: { position: "absolute", top: 46, left: 456, width: 110, height: 110, borderRadius: 55 } }) : null,
   );
+}
+
+// Ícone por refeição (SVG, pois o @react-pdf não renderiza emoji).
+function iconeRefeicao(mi: number) {
+  const raios = "M8 0.5 V2.6 M8 13.4 V15.5 M0.5 8 H2.6 M13.4 8 H15.5 M2.8 2.8 L4.3 4.3 M11.7 11.7 L13.2 13.2 M13.2 2.8 L11.7 4.3 M4.3 11.7 L2.8 13.2";
+  const kids: any[] = mi === 0 || mi === 3 ? [ // sol
+    h(Circle, { key: 1, cx: 8, cy: 8, r: 3.1, fill: "#E8A33D" }),
+    h(Path, { key: 2, d: raios, stroke: "#E8A33D", strokeWidth: 1.2, fill: "none" }),
+  ] : mi === 1 ? [ // maçã
+    h(Circle, { key: 1, cx: 6.6, cy: 9, r: 4, fill: "#E0533B" }),
+    h(Circle, { key: 2, cx: 9.6, cy: 9, r: 4, fill: "#E0533B" }),
+    h(Path, { key: 3, d: "M8 2 C 9 0.6 11 0.6 12 2 C 10.8 3.4 9 3.4 8 2 Z", fill: C.slogan1 }),
+  ] : mi === 2 ? [ // garfo + faca
+    h(Path, { key: 1, d: "M4 1 V15 M2.4 1 V5 M5.6 1 V5 M4 5 V6", stroke: "#6b8f76", strokeWidth: 1.1, fill: "none" }),
+    h(Path, { key: 2, d: "M11 1 C 13 1 13 7 11 7 V15", stroke: "#6b8f76", strokeWidth: 1.1, fill: "none" }),
+  ] : [ // lua (janta)
+    h(Path, { key: 1, d: "M11 2 A 6 6 0 1 0 11 14 A 4.6 4.6 0 1 1 11 2 Z", fill: "#6b8f76" }),
+  ];
+  return h(Svg, { width: 15, height: 15, viewBox: "0 0 16 16", style: { marginRight: 6 } }, kids);
 }
 
 function rodape() {
@@ -154,7 +164,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
   const capa = h(Page, { size: "A4", style: s.page, key: "capa" },
     fundo(),
     bannerTopo(),
-    h(View, { style: { height: 104 } }), // espaço do banner do topo (132 − paddingTop 28)
+    h(View, { style: { height: 172 } }), // espaço do cabeçalho do topo (200 − paddingTop 28)
     h(Text, { style: s.titulo }, "Plano Alimentar Personalizado"),
     h(Text, { style: s.subtitulo }, "NutriX · Saúde que Alimenta. Treino que Transforma."),
 
@@ -183,13 +193,14 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    // Organização fixa em 4 páginas:
-    //  P1 = Café da manhã · P2 = Lanche da manhã + Almoço
-    //  P3 = Café da tarde + Jantar · P4 = Orientações (abaixo)
-    // Quebra de página antes do Lanche da manhã (idx 1) e do Café da tarde (idx 3).
+    // Conteúdo completo fluindo continuamente (sem quebras fixas nem espaços
+    // vazios); o título não fica órfão no fim da página.
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, break: mi === 1 || mi === 3, minPresenceAhead: 46 },
-        h(Text, { style: s.mealTitle, minPresenceAhead: 40 }, `${meal.time} · ${meal.name}`),
+      h(View, { key: mi, minPresenceAhead: 46 },
+        h(View, { style: s.mealTitle, minPresenceAhead: 40 },
+          iconeRefeicao(mi),
+          h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, `${meal.time} · ${meal.name}`),
+        ),
         ...meal.options.map((opt, oi) =>
           h(View, { key: oi, minPresenceAhead: 30 },
             h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal`),
@@ -199,8 +210,8 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    // Orientações sozinhas na página 4.
-    h(View, { break: true },
+    // Orientações fluem logo após as refeições (sem página vazia).
+    h(View, { minPresenceAhead: 80 },
       h(Text, { style: s.mealTitle }, "Orientação nutricional"),
       h(View, { style: { ...s.header, marginTop: 4 } },
         ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),

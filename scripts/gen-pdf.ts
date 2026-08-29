@@ -4,7 +4,7 @@ import { gerarPlano } from "../server/lib/diet/generatePlan";
 import { gerarPdfDieta } from "../server/lib/pdf/dietPdf";
 
 const plano = gerarPlano(
-  { sexo: "male", peso: 87, altura: 177, idade: 30, objetivo: "weight_loss", atividade: "moderado" },
+  { sexo: "male", peso: 87, altura: 177, idade: 33, objetivo: "weight_loss", atividade: "moderado" },
   null,
   {
     cafe_manha: ["cm_pao_ovo", "cm_banana"],
