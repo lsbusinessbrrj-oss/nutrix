@@ -16,7 +16,7 @@ const C = {
   cinza: "#5b6b62", cinzaClaro: "#f5f9f6", borda: "#dce8e0", texto: "#233029", agua: "#0284c7",
   // Cabeçalho / marca
   wordNutri: "#2f6b3f", wordX: "#E1962F", slogan1: "#3f8f57", slogan2: "#256b38",
-  sw1: "#dcece0", sw2: "#bcd8c3", sw3: "#8bb894", folha: "#6fae7c", dots: "#cbb26b",
+  sw1: "#dfeee2", sw2: "#c3dcc9", sw3: "#8fbf9a", folha: "#6fae7c", dots: "#c7c2b0",
 };
 
 let LOGO: string | null | undefined;
@@ -34,7 +34,7 @@ const s = StyleSheet.create({
   mascote: { width: 64, height: 64, borderRadius: 32, alignSelf: "center", marginBottom: 6 },
   titulo: { fontSize: 15, color: C.verde, fontFamily: "Helvetica-Bold", textAlign: "center" },
   subtitulo: { fontSize: 8, color: C.cinza, textAlign: "center", marginTop: 1, marginBottom: 7 },
-  header: { backgroundColor: C.cinzaClaro, borderRadius: 6, padding: 8, marginBottom: 5, border: `1 solid ${C.borda}` },
+  header: { backgroundColor: "#f7faf7", borderRadius: 8, padding: 9, marginBottom: 5, border: `1 solid ${C.borda}`, position: "relative", overflow: "hidden" },
   headerTit: { fontSize: 9, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 3 },
   dadoRow: { flexDirection: "row", flexWrap: "wrap" },
   dado: { width: "50%", flexDirection: "row", paddingVertical: 1.4 },
@@ -86,20 +86,20 @@ function fundo() {
 function bannerTopo() {
   const src = logo();
   const dots: any[] = [];
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++)
-    dots.push(h(Circle, { key: `d${r}${c}`, cx: 360 + c * 13, cy: 18 + r * 13, r: 1.6, fill: C.dots, opacity: 0.5 }));
-  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 200, backgroundColor: "#fbfdfb" } },
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++)
+    dots.push(h(Circle, { key: `d${r}${c}`, cx: 300 + c * 12, cy: 18 + r * 12, r: 1.5, fill: C.dots, opacity: 0.6 }));
+  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 200, backgroundColor: "#fbfdf9" } },
     h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 200 }, viewBox: "0 0 595 200" },
       ...dots,
-      // Folhagem (3 camadas de verde)
-      h(Path, { d: "M120 -20 C 260 40 300 120 470 90 C 560 74 610 120 660 60 L 660 -40 L 120 -40 Z", fill: C.sw1 }),
-      h(Path, { d: "M170 -20 C 300 44 340 118 520 96 C 585 86 620 60 660 40 L 660 -40 L 170 -40 Z", fill: C.sw2 }),
-      h(Path, { d: "M300 60 C 380 40 470 70 560 40 C 610 24 560 96 470 104 C 380 112 330 92 300 60 Z", fill: C.sw3, opacity: 0.55 }),
-      // Folhinhas decorativas à esquerda
-      h(Path, { d: "M96 40 C 106 30 126 30 136 40 C 126 50 106 50 96 40 Z", fill: C.folha }),
-      h(Path, { d: "M150 66 C 158 58 174 58 182 66 C 174 74 158 74 150 66 Z", fill: C.folha }),
-      h(Path, { d: "M120 96 C 128 88 144 88 152 96 C 144 104 128 104 120 96 Z", fill: C.folha }),
-      h(Path, { d: "M108 28 C 118 44 118 60 112 78", stroke: C.folha, strokeWidth: 2, fill: "none" }),
+      // Folhagem fluida (clara → média) varrendo em direção ao mascote
+      h(Path, { d: "M150 -30 C 320 30 300 150 520 120 C 600 108 650 150 700 90 L700 -40 L150 -40 Z", fill: C.sw1 }),
+      h(Path, { d: "M210 -30 C 360 40 350 120 540 118 C 610 118 660 80 700 60 L700 -40 L210 -40 Z", fill: C.sw2 }),
+      h(Path, { d: "M250 40 C 350 8 430 44 560 20 C 620 8 600 70 520 86 C 420 106 330 92 270 74 C 250 66 246 52 250 40 Z", fill: C.sw3 }),
+      h(Path, { d: "M300 66 C 380 44 470 66 560 46 C 600 38 585 78 520 92 C 440 108 350 100 300 78 Z", fill: C.folha, opacity: 0.5 }),
+      // Folhinhas soltas à esquerda
+      h(Path, { d: "M96 44 C 106 34 126 34 136 44 C 126 54 106 54 96 44 Z", fill: C.folha }),
+      h(Path, { d: "M150 70 C 158 62 174 62 182 70 C 174 78 158 78 150 70 Z", fill: C.folha }),
+      h(Path, { d: "M108 32 C 118 48 118 62 112 80", stroke: C.folha, strokeWidth: 2, fill: "none" }),
     ),
     // Marca NutriX (Nutri verde + X dourado)
     h(Text, { style: { position: "absolute", top: 44, left: 38, fontSize: 44, fontFamily: "Helvetica-Bold" } },
@@ -127,6 +127,14 @@ function iconeRefeicao(mi: number) {
     h(Path, { key: 1, d: "M11 2 A 6 6 0 1 0 11 14 A 4.6 4.6 0 1 1 11 2 Z", fill: "#6b8f76" }),
   ];
   return h(Svg, { width: 15, height: 15, viewBox: "0 0 16 16", style: { marginRight: 6 } }, kids);
+}
+
+// Folha grande (marca d'água) para o canto direito do card de dados.
+function folhaGrande() {
+  return h(Svg, { width: 90, height: 90, viewBox: "0 0 120 120", style: { position: "absolute", right: 4, top: 2, opacity: 0.1 } },
+    h(Path, { d: "M100 15 C 40 20 15 60 20 100 C 80 96 108 60 100 15 Z", fill: C.slogan1 }),
+    h(Path, { d: "M28 92 C 55 60 80 40 96 24", stroke: C.slogan2, strokeWidth: 2, fill: "none" }),
+  );
 }
 
 function rodape() {
@@ -169,6 +177,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     h(Text, { style: s.subtitulo }, "NutriX · Saúde que Alimenta. Treino que Transforma."),
 
     h(View, { style: s.header },
+      folhaGrande(),
       h(Text, { style: s.headerTit }, "Dados do cliente"),
       h(View, { style: s.dadoRow },
         dado("Nome:", cliente.nome),
