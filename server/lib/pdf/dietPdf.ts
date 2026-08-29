@@ -180,12 +180,12 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    // Refeições: a dieta começa na página 1. Cada OPÇÃO fica junta (não quebra
-    // no meio), mas a refeição pode fluir para a página seguinte entre as opções.
-    // Refeições compactas: o conteúdo flui continuamente (sem espaços vazios).
-    // Cada item fica inteiro; título/opção não ficam órfãos no fim da página.
+    // Organização fixa em 4 páginas:
+    //  P1 = Café da manhã · P2 = Lanche da manhã + Almoço
+    //  P3 = Café da tarde + Jantar · P4 = Orientações (abaixo)
+    // Quebra de página antes do Lanche da manhã (idx 1) e do Café da tarde (idx 3).
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, minPresenceAhead: 46 },
+      h(View, { key: mi, break: mi === 1 || mi === 3, minPresenceAhead: 46 },
         h(Text, { style: s.mealTitle, minPresenceAhead: 40 }, `${meal.time} · ${meal.name}`),
         ...meal.options.map((opt, oi) =>
           h(View, { key: oi, minPresenceAhead: 30 },
@@ -196,8 +196,8 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    // Orientação nutricional flui logo após as refeições (sem página vazia).
-    h(View, { minPresenceAhead: 70 },
+    // Orientações sozinhas na página 4.
+    h(View, { break: true },
       h(Text, { style: s.mealTitle }, "Orientação nutricional"),
       h(View, { style: { ...s.header, marginTop: 4 } },
         ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
