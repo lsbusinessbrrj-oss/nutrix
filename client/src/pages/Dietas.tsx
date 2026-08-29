@@ -31,6 +31,8 @@ export default function Dietas() {
 
   const meals = (dietPlan?.planData as any)?.meals ?? [];
   const totalCals = dietPlan?.totalCalories ?? 0;
+  const waterMl = (dietPlan?.planData as any)?.waterMl ?? 0;
+  const orientacao = (dietPlan?.planData as any)?.orientacao ?? [];
 
   const quickActions = [
     { emoji: "🛒", label: "Lista Compras", action: () => toast.info("Lista de compras em breve!") },
@@ -103,7 +105,7 @@ export default function Dietas() {
 
         {/* ── Content ── */}
         {activeTab === "dieta" && (
-          <DietaTab meals={meals} totalCals={totalCals} hasPlan={!!dietPlan} navigate={navigate} />
+          <DietaTab meals={meals} totalCals={totalCals} waterMl={waterMl} orientacao={orientacao} hasPlan={!!dietPlan} navigate={navigate} />
         )}
         {activeTab === "treino" && <WorkoutWizard />}
         {activeTab === "progresso" && <ProgressoTab profileData={profileData} />}
@@ -112,7 +114,8 @@ export default function Dietas() {
   );
 }
 
-function DietaTab({ meals, totalCals, hasPlan, navigate }: any) {
+function DietaTab({ meals, totalCals, waterMl, orientacao, hasPlan, navigate }: any) {
+  const [showOrient, setShowOrient] = useState(false);
   if (!hasPlan) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 text-center">
@@ -131,10 +134,39 @@ function DietaTab({ meals, totalCals, hasPlan, navigate }: any) {
   }
   return (
     <div className="space-y-4">
-      <p className="flex items-center gap-2 text-sm text-gray-600">
-        <Flame size={16} style={{ color: "#F97316" }} />
-        Total: <b className="text-gray-900">{totalCals} kcal</b>
-      </p>
+      {/* Total + água */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="flex items-center gap-2 text-gray-600">
+          <Flame size={16} style={{ color: "#F97316" }} />
+          Total: <b className="text-gray-900">{totalCals} kcal</b>
+        </span>
+        {waterMl > 0 && (
+          <span className="flex items-center gap-1.5 font-semibold" style={{ color: "#0284C7" }}>
+            💧 {(waterMl / 1000).toFixed(1).replace(".", ",")} L de água/dia
+          </span>
+        )}
+      </div>
+
+      {/* Orientação nutricional */}
+      {orientacao?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <button onClick={() => setShowOrient(!showOrient)}
+            className="w-full flex items-center justify-between px-5 py-4">
+            <span className="flex items-center gap-2 font-bold text-gray-900">🍽️ Orientação nutricional</span>
+            <ChevronDown size={18} className={`text-gray-400 transition-transform ${showOrient ? "rotate-180" : ""}`} />
+          </button>
+          {showOrient && (
+            <ul className="px-5 pb-5 space-y-2">
+              {orientacao.map((o: string, i: number) => (
+                <li key={i} className="flex gap-2 text-sm text-gray-600">
+                  <span style={{ color: "#43A047" }}>•</span> {o}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {meals.map((meal: any, i: number) => <MealCard key={i} meal={meal} />)}
 
       {/* Agendar consulta */}
@@ -203,18 +235,48 @@ function MealCard({ meal }: { meal: any }) {
 
       {/* foods */}
       <div className="space-y-3">
-        {foods.map((food: any, j: number) => (
-          <div key={j} className="flex items-center justify-between">
-            <span className="flex items-center gap-2.5 text-gray-700">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#43A047" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
-              </svg>
-              {food.name}
-            </span>
-            <span className="text-sm text-gray-400">{food.quantity}</span>
-          </div>
-        ))}
+        {foods.map((food: any, j: number) => <FoodRow key={j} food={food} />)}
       </div>
+    </div>
+  );
+}
+
+function FoodRow({ food }: { food: any }) {
+  const [open, setOpen] = useState(false);
+  const subs = food.substituicoes ?? [];
+  return (
+    <div className="border-b border-gray-50 last:border-0 pb-2.5 last:pb-0">
+      <div className="flex items-start justify-between">
+        <span className="flex items-center gap-2.5 text-gray-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#43A047" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
+          </svg>
+          <span>
+            <span className="block">{food.name}</span>
+            <span className="text-sm text-gray-400">{food.quantity}</span>
+          </span>
+        </span>
+      </div>
+      {subs.length > 0 && (
+        <div className="pl-7 mt-1">
+          <button onClick={() => setOpen(!open)}
+            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg" style={{ background: "#F1F5F9", color: "#475569" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3l4 4-4 4" /><path d="M3 7h18" /><path d="M7 21l-4-4 4-4" /><path d="M21 17H3" /></svg>
+            Ver opções de substituição
+          </button>
+          {open && (
+            <div className="mt-2 space-y-1.5">
+              <p className="text-xs text-gray-400">Opções para substituir (mesma quantidade nutricional):</p>
+              {subs.map((s: any, k: number) => (
+                <div key={k} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "#F8FAFC" }}>
+                  <span className="text-sm text-gray-700">{s.name}</span>
+                  <span className="text-xs text-gray-400">{s.quantity}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

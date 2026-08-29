@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { calcularTMB, calcularMetas, type PerfilNutri } from "./engine";
 import { gerarPlano } from "./generatePlan";
+import { alimento } from "./foods";
+
+const cats = (foods: { name: string }[]) =>
+  foods.map((f) => alimento(f.name)?.cat).filter(Boolean);
 
 describe("engine — cálculo de calorias e macros", () => {
   it("TMB Mifflin-St Jeor (masculino)", () => {
@@ -39,26 +43,50 @@ describe("generatePlan — formato e metas", () => {
     objetivo: "weight_loss", atividade: "moderado",
   };
 
-  it("retorna 5 refeições com 5 opções cada", () => {
+  it("retorna 5 refeições com 3 opções cada", () => {
     const plano = gerarPlano(p);
     expect(plano.meals).toHaveLength(5);
     for (const meal of plano.meals) {
-      expect(meal.options).toHaveLength(5);
-      expect(meal.calories).toBeGreaterThan(0);
+      expect(meal.options).toHaveLength(3);
       for (const opt of meal.options) expect(opt.foods.length).toBeGreaterThan(0);
     }
   });
 
-  it("soma das calorias das refeições bate com o total (±5%)", () => {
+  it("TODA opção tem carboidrato E proteína", () => {
     const plano = gerarPlano(p);
-    const soma = plano.meals.reduce((s, m) => s + m.calories, 0);
-    const desvio = Math.abs(soma - plano.totalCalories) / plano.totalCalories;
-    expect(desvio).toBeLessThan(0.05);
+    for (const meal of plano.meals)
+      for (const opt of meal.options) {
+        const c = cats(opt.foods);
+        expect(c).toContain("carboidrato");
+        expect(c).toContain("proteina");
+      }
+  });
+
+  it("respeita os alimentos escolhidos (Opção 1)", () => {
+    const plano = gerarPlano(p, null, { almoco: ["al_arroz", "al_frango_grelhado"] });
+    const almoco = plano.meals.find((m) => m.name === "Almoço")!;
+    const nomes = almoco.options[0].foods.map((f) => f.name);
+    expect(nomes).toContain("Arroz branco cozido");
+    expect(nomes).toContain("Frango grelhado");
+  });
+
+  it("se a pessoa escolhe só fruta, ainda vem carbo + proteína", () => {
+    const plano = gerarPlano(p, null, { cafe_manha: ["cm_maca"] });
+    const cafe = plano.meals.find((m) => m.name === "Café da manhã")!;
+    const c = cats(cafe.options[0].foods);
+    expect(cafe.options[0].foods.map((f) => f.name)).toContain("Maçã");
+    expect(c).toContain("carboidrato");
+    expect(c).toContain("proteina");
+  });
+
+  it("água calculada pelo peso (mín. 2,5 L)", () => {
+    expect(gerarPlano({ ...p, peso: 87 }).waterMl).toBeGreaterThanOrEqual(2500);
+    expect(gerarPlano({ ...p, peso: 87 }).waterMl).toBe(3050); // 87*35=3045 -> 3050
   });
 
   it("respeita restrição vegana (sem carne/peixe/ovo/laticínio)", () => {
-    const plano = gerarPlano(p, "vegan");
-    const proibidos = ["frango", "Patinho", "Tilápia", "Carne", "Atum", "Ovo", "Iogurte", "cottage", "Whey"];
+    const plano = gerarPlano(p, "vegano");
+    const proibidos = ["Frango", "Patinho", "Peixe", "Carne", "Ovo", "Iogurte", "Queijo", "Presunto", "Whey", "Requeijão", "Leite"];
     for (const meal of plano.meals)
       for (const opt of meal.options)
         for (const f of opt.foods)

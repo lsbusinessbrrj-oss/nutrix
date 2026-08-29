@@ -95,7 +95,8 @@ export function calcularMetas(p: PerfilNutri): Metas {
     proteinaG: Math.round(proteinaG),
     carboidratoG: Math.round(carboidratoG),
     gorduraG: Math.round(gorduraG),
-    aguaMl: Math.round(p.peso * 35),
+    // Água: ~35 ml por kg de peso, com piso de 2,5 L (como na orientação).
+    aguaMl: Math.max(2500, Math.round((p.peso * 35) / 50) * 50),
     proteinaPorKg,
   };
 }

@@ -56,8 +56,13 @@ export const dietRouter = router({
       );
     }
 
-    // Geração DETERMINÍSTICA: calorias (Mifflin-St Jeor) e proteína exata
-    // por kg de peso — substitui o antigo prompt de IA que "chutava" os números.
+    // Escolhas de alimentos do cliente (por refeição), para o plano respeitá-las.
+    const foodSels = await db.getUserFoodSelections(ctx.user.id);
+    const selecoes: Record<string, string[]> = {};
+    for (const s of foodSels) selecoes[s.mealType] = (s.foods as string[]) ?? [];
+
+    // Geração DETERMINÍSTICA: calorias (Mifflin-St Jeor) e proteína exata por kg,
+    // respeitando as escolhas e sempre com carboidrato + proteína por refeição.
     const planData = gerarPlano(
       {
         sexo: user.sex as Sexo,
@@ -68,6 +73,7 @@ export const dietRouter = router({
         atividade: (user.activityLevel ?? "moderado") as Atividade,
       },
       (user as any).healthConditions,
+      selecoes,
     );
 
     await db.createDietPlan(ctx.user.id, planData.totalCalories, planData);
