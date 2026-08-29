@@ -60,4 +60,28 @@ describe("generatePlan — templates da referência", () => {
     expect(gerarPlano(homem87).waterMl).toBeGreaterThanOrEqual(2500);
     expect(gerarPlano({ ...homem87, peso: 87 }).waterMl).toBe(3050);
   });
+
+  it("Opção 1 = escolha do cliente no quiz (+ opções de referência)", () => {
+    const plano = gerarPlano(homem87, null, { cafe_manha: ["cm_pao_ovo", "cm_banana"] });
+    const cafe = plano.meals[0];
+    expect(cafe.options).toHaveLength(3); // 1 do cliente + 2 de referência
+    const nomes = cafe.options[0].foods.map((f) => f.name);
+    expect(nomes).toContain("Ovo");
+    expect(nomes).toContain("Banana prata");
+    expect(nomes).toContain("Pão de forma");
+    // substituições presentes em cada item escolhido
+    expect(cafe.options[0].foods[0].substituicoes.length).toBeGreaterThan(0);
+  });
+
+  it("almoço só com fruta escolhida ainda traz proteína + carbo", () => {
+    const plano = gerarPlano(homem87, null, { almoco: ["al_salada_alface"] });
+    const cats = plano.meals[1].options[0].foods
+      .map((f) => alimentoCat(f.name))
+      .filter(Boolean);
+    expect(cats).toContain("proteina");
+    expect(cats).toContain("carboidrato");
+  });
 });
+
+import { alimento } from "./foods";
+const alimentoCat = (n: string) => alimento(n)?.cat;
