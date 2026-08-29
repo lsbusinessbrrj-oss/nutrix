@@ -27,7 +27,12 @@ async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer 
     (user as any).healthConditions, selecoes,
   );
   const nome = user.name ?? "Cliente";
-  return { nome, pdf: await gerarPdfDieta(nome, plano) };
+  const cliente = {
+    nome, whatsapp: user.phone, sexo: user.sex, idade: user.age,
+    peso: user.weight != null ? Number(user.weight) : null,
+    altura: user.height != null ? Number(user.height) : null,
+  };
+  return { nome, pdf: await gerarPdfDieta(cliente, plano) };
 }
 
 export interface ResultadoEntrega {

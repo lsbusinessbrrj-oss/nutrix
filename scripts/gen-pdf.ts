@@ -11,7 +11,10 @@ const plano = gerarPlano(
     almoco: ["al_arroz", "al_frango_grelhado", "al_salada_alface_tomate"],
   },
 );
-const pdf = await gerarPdfDieta("Matheus", plano);
+const pdf = await gerarPdfDieta(
+  { nome: "Matheus Felipe Rodrigues", whatsapp: "+55 (24) 99997-1926", sexo: "male", idade: 33, peso: 87, altura: 177 },
+  plano,
+);
 writeFileSync("/tmp/dieta-nutrix.pdf", pdf);
 console.log(`PDF gerado: ${pdf.length} bytes -> /tmp/dieta-nutrix.pdf`);
 process.exit(0);

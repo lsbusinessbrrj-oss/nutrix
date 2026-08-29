@@ -14,7 +14,10 @@ const plano = gerarPlano(
   null,
   { cafe_manha: ["cm_pao_ovo", "cm_banana"], almoco: ["al_arroz", "al_frango_grelhado", "al_salada_alface_tomate"] },
 );
-const pdf = await gerarPdfDieta("Matheus", plano);
+const pdf = await gerarPdfDieta(
+  { nome: "Matheus Felipe Rodrigues", whatsapp: "+55 (24) 99997-1926", sexo: "male", idade: 33, peso: 87, altura: 177 },
+  plano,
+);
 console.log(`Enviando e-mail real para: ${DESTINO} (PDF ${pdf.length} bytes)...`);
 const r = await enviarEmail(DESTINO, "Matheus", pdf);
 console.log("Resultado:", JSON.stringify(r, null, 2));
