@@ -148,8 +148,11 @@ function Campo({ label, value, onChange, placeholder }: { label: string; value: 
 
 function Sucesso({ entrega, onContinue }: { entrega: any; onContinue: () => void }) {
   const emailOk = entrega?.email?.ok;
-  const waOk = entrega?.whatsapp?.ok;
-  const simulado = entrega?.email?.simulado || entrega?.whatsapp?.simulado;
+  const simulado = entrega?.email?.simulado;
+  const negocio = (import.meta.env.VITE_WHATSAPP_NEGOCIO ?? "").replace(/\D/g, "");
+  const waLink = negocio
+    ? `https://wa.me/${negocio}?text=${encodeURIComponent("Oi! Acabei de assinar e quero receber minha dieta NutriX 🥗")}`
+    : null;
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F7F8F7" }}>
       <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
@@ -157,21 +160,27 @@ function Sucesso({ entrega, onContinue }: { entrega: any; onContinue: () => void
           <Check size={32} style={{ color: "#166534" }} />
         </div>
         <h2 className="text-xl font-black" style={{ color: "#166534" }}>Pagamento aprovado! 🎉</h2>
-        <p className="text-sm text-gray-500 mt-1 mb-5">Sua dieta foi liberada e enviada:</p>
-        <div className="space-y-2 text-left">
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F7F8F7" }}>
-            <Mail size={18} style={{ color: emailOk ? "#166534" : "#9CA3AF" }} />
-            <span className="text-sm text-gray-700 flex-1">E-mail {entrega?.email?.destino ? `· ${entrega.email.destino}` : ""}</span>
-            {emailOk && <Check size={16} style={{ color: "#166534" }} />}
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F7F8F7" }}>
-            <MessageCircle size={18} style={{ color: waOk ? "#166534" : "#9CA3AF" }} />
-            <span className="text-sm text-gray-700 flex-1">WhatsApp {entrega?.whatsapp?.destino ? `· ${entrega.whatsapp.destino}` : ""}</span>
-            {waOk && <Check size={16} style={{ color: "#166534" }} />}
-          </div>
+        <p className="text-sm text-gray-500 mt-1 mb-5">Sua dieta está liberada. Veja como recebê-la:</p>
+
+        <div className="flex items-center gap-3 p-3 rounded-xl text-left mb-3" style={{ background: "#F7F8F7" }}>
+          <Mail size={18} style={{ color: emailOk ? "#166534" : "#9CA3AF" }} />
+          <span className="text-sm text-gray-700 flex-1">
+            Enviada no e-mail{entrega?.email?.destino ? ` · ${entrega.email.destino}` : ""}
+          </span>
+          {emailOk && <Check size={16} style={{ color: "#166534" }} />}
         </div>
-        {simulado && <p className="text-[11px] text-gray-400 mt-3">(Envio simulado — configure as chaves para enviar de verdade.)</p>}
-        <button onClick={onContinue} className="w-full mt-6 py-3.5 rounded-xl font-bold text-white" style={{ background: "#166534" }}>
+
+        {/* Caminho B: o cliente inicia a conversa no WhatsApp para receber o PDF */}
+        <a href={waLink ?? "#"} target="_blank" rel="noopener noreferrer"
+          onClick={(e) => { if (!waLink) { e.preventDefault(); toast.info("WhatsApp do negócio ainda não configurado."); } }}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white"
+          style={{ background: "#25D366" }}>
+          <MessageCircle size={18} /> Receber no WhatsApp
+        </a>
+        <p className="text-[11px] text-gray-400 mt-2">Toque acima e envie a mensagem — respondemos com o PDF da sua dieta.</p>
+
+        {simulado && <p className="text-[11px] text-gray-400 mt-2">(E-mail em modo simulação — configure as chaves para enviar de verdade.)</p>}
+        <button onClick={onContinue} className="w-full mt-5 py-3.5 rounded-xl font-bold text-white" style={{ background: "#166534" }}>
           Ver minha dieta
         </button>
       </div>

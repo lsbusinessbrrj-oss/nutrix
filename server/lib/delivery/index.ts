@@ -1,5 +1,5 @@
-// Orquestra a entrega da dieta após o pagamento: gera o plano + PDF e envia
-// por e-mail e WhatsApp (ou simula, se as chaves não estiverem configuradas).
+// Orquestra a entrega da dieta: gera o plano + PDF e envia por e-mail e/ou
+// WhatsApp (ou simula, se as chaves não estiverem configuradas).
 import * as db from "../../db";
 import { gerarPlano } from "../diet/generatePlan";
 import type { Atividade, Objetivo, Sexo } from "../diet/engine";
@@ -7,21 +7,14 @@ import { gerarPdfDieta } from "../pdf/dietPdf";
 import { enviarEmail, type ResultadoEnvio } from "./email";
 import { enviarWhatsapp } from "./whatsapp";
 
-export interface ResultadoEntrega {
-  totalCalories: number;
-  pdfBytes: number;
-  email: (ResultadoEnvio & { destino?: string }) | { ok: false; detalhe: string };
-  whatsapp: (ResultadoEnvio & { destino?: string }) | { ok: false; detalhe: string };
-}
+type UserRow = NonNullable<Awaited<ReturnType<typeof db.getUserById>>>;
 
-export async function entregarDieta(userId: number): Promise<ResultadoEntrega> {
-  const user = await db.getUserById(userId);
-  if (!user) throw new Error("Usuário não encontrado");
+/** Gera o plano e o PDF para um usuário (valida perfil e carrega as escolhas). */
+async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer }> {
   if (user.weight == null || user.height == null || user.age == null || !user.sex) {
     throw new Error("Perfil incompleto (peso, altura, idade, sexo).");
   }
-
-  const foodSels = await db.getUserFoodSelections(userId);
+  const foodSels = await db.getUserFoodSelections(user.id);
   const selecoes: Record<string, string[]> = {};
   for (const s of foodSels) selecoes[s.mealType] = (s.foods as string[]) ?? [];
 
@@ -33,16 +26,43 @@ export async function entregarDieta(userId: number): Promise<ResultadoEntrega> {
     },
     (user as any).healthConditions, selecoes,
   );
-
   const nome = user.name ?? "Cliente";
-  const pdf = await gerarPdfDieta(nome, plano);
+  return { nome, pdf: await gerarPdfDieta(nome, plano) };
+}
+
+export interface ResultadoEntrega {
+  email: (ResultadoEnvio & { destino?: string }) | { ok: false; detalhe: string };
+  whatsapp: (ResultadoEnvio & { destino?: string }) | { ok: false; detalhe: string };
+}
+
+/**
+ * Entrega após o pagamento. Por padrão envia o e-mail (automático) e NÃO dispara
+ * o WhatsApp proativamente — no caminho B, o cliente inicia a conversa e o
+ * webhook responde com o PDF. Passe `whatsappProativo` para forçar o envio.
+ */
+export async function entregarDieta(userId: number, whatsappProativo = false): Promise<ResultadoEntrega> {
+  const user = await db.getUserById(userId);
+  if (!user) throw new Error("Usuário não encontrado");
+  const { nome, pdf } = await construirPdf(user);
 
   const email = user.email
     ? { ...(await enviarEmail(user.email, nome, pdf)), destino: user.email }
     : { ok: false as const, detalhe: "Sem e-mail no cadastro." };
-  const whatsapp = user.phone
-    ? { ...(await enviarWhatsapp(user.phone, nome, pdf)), destino: user.phone }
-    : { ok: false as const, detalhe: "Sem WhatsApp no cadastro." };
 
-  return { totalCalories: plano.totalCalories, pdfBytes: pdf.length, email, whatsapp };
+  let whatsapp: ResultadoEntrega["whatsapp"];
+  if (whatsappProativo && user.phone) {
+    whatsapp = { ...(await enviarWhatsapp(user.phone, nome, pdf)), destino: user.phone };
+  } else {
+    whatsapp = { ok: false, detalhe: "Aguardando o cliente iniciar a conversa no WhatsApp." };
+  }
+  return { email, whatsapp };
+}
+
+/** Envia o PDF por WhatsApp para um usuário (usado pelo webhook, caminho B). */
+export async function entregarWhatsapp(userId: number) {
+  const user = await db.getUserById(userId);
+  if (!user || !user.phone) return { ok: false, detalhe: "Usuário sem telefone." };
+  if (!user.hasPaidPlan) return { ok: false, detalhe: "Cliente ainda não pagou." };
+  const { nome, pdf } = await construirPdf(user);
+  return { ...(await enviarWhatsapp(user.phone, nome, pdf)), destino: user.phone };
 }

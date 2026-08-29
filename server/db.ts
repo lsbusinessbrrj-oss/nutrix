@@ -113,6 +113,15 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Busca por telefone comparando só os dígitos (últimos 11). */
+export async function getUserByPhoneDigits(phoneDigits: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const alvo = phoneDigits.replace(/\D/g, "").slice(-11);
+  const todos = await db.select().from(users);
+  return todos.find((u) => (u.phone ?? "").replace(/\D/g, "").slice(-11) === alvo);
+}
+
 export async function createLocalUser(params: {
   email: string;
   passwordHash: string;

@@ -19,7 +19,7 @@ await db.updateUserProfile(user.id, {
 await db.upsertFoodSelection(user.id, "cafe_manha", ["cm_pao_ovo", "cm_banana"]);
 await db.upsertFoodSelection(user.id, "almoco", ["al_arroz", "al_frango_grelhado", "al_salada_alface_tomate"]);
 
-const res = await entregarDieta(user.id);
+const res = await entregarDieta(user.id, true); // true = tenta WhatsApp também
 console.log("Destino e-mail:", EMAIL, "| WhatsApp:", PHONE);
 console.log(JSON.stringify(res, null, 2));
 process.exit(0);
