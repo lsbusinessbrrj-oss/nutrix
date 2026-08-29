@@ -15,6 +15,7 @@ export default function Pagamento() {
   const [card, setCard] = useState({ numero: "", nome: "", validade: "", cvv: "" });
 
   const criarPix = trpc.payment.criarPix.useMutation();
+  const criarAssinatura = trpc.payment.criarAssinatura.useMutation();
   const simular = trpc.payment.simularAprovacao.useMutation();
 
   useEffect(() => { if (!loading && !isAuthenticated) navigate("/login"); }, [loading, isAuthenticated, navigate]);
@@ -32,7 +33,16 @@ export default function Pagamento() {
       toast.error("Preencha os dados do cartão.");
       return;
     }
-    try { await liberar(); } catch (e) { toast.error((e as Error).message); }
+    try {
+      const a = await criarAssinatura.mutateAsync();
+      if (!a.simulado && a.url) {
+        // Mercado Pago configurado: vai para a página segura de assinatura.
+        window.location.href = a.url;
+        return;
+      }
+      // Sem chave (simulação): libera e entrega direto.
+      await liberar();
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   async function gerarPix() {
@@ -78,11 +88,11 @@ export default function Pagamento() {
               <Campo label="Validade" value={card.validade} onChange={(v) => setCard({ ...card, validade: v.replace(/[^\d/]/g, "") })} placeholder="MM/AA" />
               <Campo label="CVV" value={card.cvv} onChange={(v) => setCard({ ...card, cvv: v.replace(/\D/g, "") })} placeholder="123" />
             </div>
-            <button onClick={assinarCartao} disabled={simular.isPending}
+            <button onClick={assinarCartao} disabled={simular.isPending || criarAssinatura.isPending}
               className="w-full py-4 rounded-xl font-bold text-white text-base disabled:opacity-60 flex items-center justify-center gap-2"
               style={{ background: "#166534" }}>
-              {simular.isPending ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
-              {simular.isPending ? "Ativando..." : "Ativar assinatura · R$ 9,99/mês"}
+              {(simular.isPending || criarAssinatura.isPending) ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+              {(simular.isPending || criarAssinatura.isPending) ? "Ativando..." : "Ativar assinatura · R$ 9,99/mês"}
             </button>
             <p className="text-center text-[11px] text-gray-400">🔒 Pagamento processado pelo Mercado Pago</p>
           </div>
