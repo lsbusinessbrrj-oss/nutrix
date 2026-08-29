@@ -100,6 +100,23 @@ function fundo() {
   return h(Svg, { fixed: true, style: { position: "absolute", top: 0, left: 0, width: 595, height: 842 }, viewBox: "0 0 595 842" }, cells);
 }
 
+// Banner do topo (estilo faixa com onda), nas cores NutriX + logo à direita.
+function bannerTopo() {
+  const src = logo();
+  return h(View, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 158 } },
+    h(Svg, { style: { position: "absolute", top: 0, left: 0, width: 595, height: 158 }, viewBox: "0 0 595 158" },
+      // Onda verde principal
+      h(Path, { d: "M0 0 H595 V110 C 470 150 360 90 235 116 C 150 134 70 128 0 114 Z", fill: C.verde }),
+      // Onda de destaque (verde mais claro), à direita
+      h(Path, { d: "M300 116 C 410 92 520 126 595 104 L595 150 C 500 166 400 150 340 132 C 322 126 308 122 300 116 Z", fill: "#2E9E5B" }),
+    ),
+    h(Text, { style: { position: "absolute", top: 30, left: 34, color: "#ffffff", fontSize: 34, fontFamily: "Helvetica-Bold" } }, "NutriX"),
+    h(Text, { style: { position: "absolute", top: 74, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Saúde que Alimenta."),
+    h(Text, { style: { position: "absolute", top: 89, left: 36, color: C.verdeClaro, fontSize: 12, fontFamily: "Helvetica-Bold" } }, "Treino que Transforma."),
+    src ? h(Image, { src, style: { position: "absolute", top: 24, left: 472, width: 86, height: 86, borderRadius: 43 } }) : null,
+  );
+}
+
 function rodape() {
   return h(Text, { style: s.rodape, fixed: true }, "NutriX · Saúde que Alimenta. Treino que Transforma. · Material educativo, não substitui acompanhamento profissional.");
 }
@@ -124,7 +141,6 @@ export interface ClientePdf {
 export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
   const { cliente, plano } = props;
   const m = plano.summary;
-  const src = logo();
   const alturaM = cliente.altura ? (cliente.altura > 3 ? cliente.altura / 100 : cliente.altura) : null;
   const imc = cliente.peso && alturaM ? cliente.peso / (alturaM * alturaM) : null;
   const dataAval = new Date().toLocaleDateString("pt-BR");
@@ -132,9 +148,10 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
 
   const capa = h(Page, { size: "A4", style: s.page, key: "capa" },
     fundo(),
-    src ? h(Image, { src, style: s.mascote }) : null,
+    bannerTopo(),
+    h(View, { style: { height: 138 } }), // espaço do banner do topo
     h(Text, { style: s.titulo }, "Plano Alimentar Personalizado"),
-    h(Text, { style: s.subtitulo }, "NutriX · Saúde que Alimenta. Treino que Transforma."),
+    h(Text, { style: s.subtitulo }, `Avaliação: ${dataAval}`),
 
     h(View, { style: s.header },
       h(Text, { style: s.headerTit }, "Dados do cliente"),
