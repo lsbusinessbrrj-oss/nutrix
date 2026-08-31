@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { getStripe } from "../lib/stripe";
-import { criarPix, criarCheckout, criarAssinatura, statusPagamento, detalhePagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
+import { criarPix, criarCheckout, criarAssinatura, statusPagamento, detalhePagamento, detalheAssinatura, PRECO_DIETA } from "../lib/payments/mercadopago";
 import { entregarDieta, confirmarAssinatura } from "../lib/delivery";
 
 // Modo teste ligado por variável de ambiente DO SERVIDOR (não confiar no client).
@@ -46,6 +46,26 @@ export const paymentRouter = router({
       try { entrega = await entregarDieta(ctx.user.id); }
       catch (e) { console.error("[confirmarPix] entrega falhou:", (e as Error).message); }
       return { aprovado: true, status, entrega };
+    }),
+
+  // Confirma a assinatura no retorno do Mercado Pago (?preapproval_id=...).
+  // Rede de segurança pra liberar na hora, mesmo que o webhook demore.
+  verificarAssinatura: protectedProcedure
+    .input(z.object({ preapprovalId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const det = await detalheAssinatura(input.preapprovalId);
+      // Segurança: a assinatura tem que ser DESTE usuário.
+      if (det.externalReference && det.externalReference !== String(ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Assinatura não corresponde à sua conta." });
+      }
+      if (det.status !== "authorized") return { aprovado: false, status: det.status };
+      await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true, assinaturaCancelada: false });
+      let entrega = null;
+      try {
+        await confirmarAssinatura(ctx.user.id);
+        entrega = await entregarDieta(ctx.user.id);
+      } catch (e) { console.error("[verificarAssinatura] entrega falhou:", (e as Error).message); }
+      return { aprovado: true, status: det.status, entrega };
     }),
 
   // Simula a aprovação do pagamento (para testes): libera e entrega a dieta.

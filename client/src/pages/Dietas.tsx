@@ -23,10 +23,28 @@ export default function Dietas() {
     onSuccess: async () => { await utils.diet.getActivePlan.invalidate(); toast.success("Sua dieta foi gerada!"); },
     onError: (e) => toast.error(e.message),
   });
+  const verificarAssin = trpc.payment.verificarAssinatura.useMutation();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate("/login");
   }, [loading, isAuthenticated]);
+
+  // Volta do Mercado Pago após assinar (?preapproval_id=...) → confirma na hora.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const pid = new URLSearchParams(window.location.search).get("preapproval_id");
+    if (!pid) return;
+    window.history.replaceState({}, "", "/dietas");
+    verificarAssin.mutate({ preapprovalId: pid }, {
+      onSuccess: async (r) => {
+        if (r.aprovado) {
+          await utils.auth.me.invalidate();
+          await utils.diet.getActivePlan.invalidate();
+          toast.success("Assinatura ativada! Sua dieta está liberada. 🎉");
+        }
+      },
+    });
+  }, [isAuthenticated]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#F3F4F6" }}>
