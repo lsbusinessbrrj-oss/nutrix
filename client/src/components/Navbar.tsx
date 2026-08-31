@@ -89,7 +89,7 @@ export default function Navbar() {
 
               {/* Navegação (aparece também no mobile) */}
               <div className="md:hidden">
-                {links.map(l => (
+                {links.filter(l => l.href !== "/perfil").map(l => (
                   <DropdownMenuItem key={l.href} onClick={() => navigate(l.href)} className="gap-2">
                     <l.icon size={16} className="text-gray-500" /> {l.label}
                   </DropdownMenuItem>

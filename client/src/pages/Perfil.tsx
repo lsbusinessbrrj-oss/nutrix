@@ -248,11 +248,11 @@ function PerfilTab({ user, p, streak, navigate }: any) {
           </div>
         </div>
         <p className="text-sm text-gray-500 mb-4">Precisa de ajuda ou tem alguma dúvida? Fale com nossa equipe pelo chat ao vivo.</p>
-        <button onClick={() => toast.info("Chat de suporte no botão flutuante abaixo!")}
+        <a href="mailto:dieta@usenutrix.com.br"
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white"
           style={{ background: "#16A34A" }}>
-          <MessageCircle size={16} /> Falar com o suporte
-        </button>
+          <Mail size={16} /> Falar com o suporte
+        </a>
       </div>
 
       <ContaSection navigate={navigate} />
