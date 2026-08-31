@@ -1,4 +1,4 @@
-import { boolean, float, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, float, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -122,7 +122,11 @@ export const marketingEmails = mysqlTable("marketing_emails", {
   userId: int("userId").notNull(),
   type: varchar("type", { length: 40 }).notNull(),
   sentAt: timestamp("sentAt").defaultNow().notNull(),
-});
+}, (t) => ({
+  // Garante 1 envio por (usuário, etapa): a reserva antes do envio evita
+  // duplicidade mesmo se o scheduler interno e o cron externo rodarem juntos.
+  uniqUserType: uniqueIndex("uniq_user_type").on(t.userId, t.type),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

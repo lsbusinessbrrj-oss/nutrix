@@ -11,9 +11,9 @@ export const dietRouter = router({
 
   saveFormData: protectedProcedure
     .input(z.object({
-      weight: z.number().optional(),
-      height: z.number().optional(),
-      age: z.number().optional(),
+      weight: z.number().positive().max(400).optional(),
+      height: z.number().positive().max(260).optional(),
+      age: z.number().int().positive().max(120).optional(),
       sex: z.enum(["male", "female"]).optional(),
       goal: z.string().optional(),
       dailyCalories: z.string().optional(),

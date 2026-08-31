@@ -12,6 +12,7 @@ import { assinarSessao } from "../auth/session";
 import { assinarTokenReset, lerTokenReset, impressaoSenha } from "../auth/reset";
 import { assuntoReset, corpoReset, enviarEmailSimples } from "../lib/delivery/email";
 import { protectedProcedure } from "../_core/trpc";
+import { avisoCadastro } from "../lib/notify";
 
 const APP_URL = (process.env.APP_URL || "https://usenutrix.com.br").replace(/\/$/, "");
 
@@ -55,6 +56,7 @@ export const authRouter = router({
       const passwordHash = await hashSenha(input.password);
       const phone = input.phone?.replace(/\D/g, "") ? input.phone.trim() : null;
       const user = await db.createLocalUser({ email, passwordHash, name: input.name ?? null, phone });
+      avisoCadastro(user.name, user.email, user.phone); // avisa os admins (fire-and-forget)
       await iniciarSessao(ctx, user.id);
       return { success: true, user: semSenha(user) };
     }),

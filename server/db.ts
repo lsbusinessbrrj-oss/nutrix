@@ -113,6 +113,14 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** E-mails de todos os admins (para avisos operacionais). */
+export async function listarEmailsAdmins(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ email: users.email }).from(users).where(eq(users.role, "admin"));
+  return rows.map((r) => r.email).filter((e): e is string => !!e);
+}
+
 /** Busca por telefone comparando só os dígitos (últimos 11). */
 export async function getUserByPhoneDigits(phoneDigits: string) {
   const db = await getDb();

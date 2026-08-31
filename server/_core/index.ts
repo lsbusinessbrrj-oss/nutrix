@@ -16,6 +16,18 @@ import { registerMagicAuth } from "../magic-auth";
 import { registerCronMarketing } from "../cron-marketing";
 import { registerDietaPdf } from "../dieta-pdf";
 import { startMarketingScheduler } from "../marketing-scheduler";
+import { avisoErro } from "../lib/notify";
+
+// Avisa os admins por e-mail se algo estourar sem tratamento (não derruba o
+// processo — o Render reinicia sozinho em caso de saída).
+process.on("unhandledRejection", (r) => {
+  console.error("[unhandledRejection]", r);
+  avisoErro("promessa não tratada", String((r as Error)?.stack ?? r));
+});
+process.on("uncaughtException", (e) => {
+  console.error("[uncaughtException]", e);
+  avisoErro("exceção não capturada", String(e?.stack ?? e));
+});
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {

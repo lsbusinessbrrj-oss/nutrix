@@ -250,7 +250,9 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
   const linhas: ResumoLinha[] = [0, 1, 2].map((i) => {
     const kcal = meals.reduce((s, m) => s + (m.options[i]?.kcal ?? 0), 0);
     const protein = meals.reduce((s, m) => s + (m.options[i]?.protein ?? 0), 0);
-    return { opcao: i + 1, kcal, protein, pctKcal: Math.round((kcal / metaKcal) * 100), pctProt: Math.round((protein / metaProt) * 100) };
+    return { opcao: i + 1, kcal, protein,
+      pctKcal: metaKcal > 0 ? Math.round((kcal / metaKcal) * 100) : 0,
+      pctProt: metaProt > 0 ? Math.round((protein / metaProt) * 100) : 0 };
   });
 
   const plano: PlanData = {

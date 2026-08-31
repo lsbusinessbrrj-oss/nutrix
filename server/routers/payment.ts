@@ -6,8 +6,9 @@ import { getStripe } from "../lib/stripe";
 import { criarPix, criarCheckout, criarAssinatura, statusPagamento, detalhePagamento, detalheAssinatura, PRECO_DIETA } from "../lib/payments/mercadopago";
 import { entregarDieta, confirmarAssinatura } from "../lib/delivery";
 
-// Modo teste ligado por variável de ambiente DO SERVIDOR (não confiar no client).
-const MODO_TESTE = process.env.MODO_TESTE === "1" || process.env.VITE_MODO_TESTE === "1";
+// Modo teste ligado por variável de ambiente EXCLUSIVA do servidor. Nunca ler
+// nomes VITE_* aqui: eles vão pro bundle do client e não devem decidir segurança.
+const MODO_TESTE = process.env.MODO_TESTE === "1";
 
 export const paymentRouter = router({
   // ── Mercado Pago ──
@@ -36,8 +37,9 @@ export const paymentRouter = router({
     .mutation(async ({ ctx, input }) => {
       const det = await detalhePagamento(input.paymentId);
       if (det.status !== "approved") return { aprovado: false, status: det.status };
-      // Segurança: o pagamento tem que ser DESTE usuário (external_reference = userId).
-      if (det.externalReference && det.externalReference !== String(ctx.user.id)) {
+      // Segurança: o pagamento TEM que ser deste usuário (external_reference = userId).
+      // Referência ausente também é rejeitada — nossos fluxos sempre a definem.
+      if (det.externalReference !== String(ctx.user.id)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Pagamento não corresponde à sua conta." });
       }
       const status = det.status;
@@ -54,8 +56,8 @@ export const paymentRouter = router({
     .input(z.object({ preapprovalId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const det = await detalheAssinatura(input.preapprovalId);
-      // Segurança: a assinatura tem que ser DESTE usuário.
-      if (det.externalReference && det.externalReference !== String(ctx.user.id)) {
+      // Segurança: a assinatura TEM que ser deste usuário (referência ausente também rejeita).
+      if (det.externalReference !== String(ctx.user.id)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Assinatura não corresponde à sua conta." });
       }
       if (det.status !== "authorized") return { aprovado: false, status: det.status };
