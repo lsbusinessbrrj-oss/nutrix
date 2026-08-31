@@ -12,7 +12,9 @@ function readCookie(req: express.Request, name: string): string | undefined {
   return item ? decodeURIComponent(item.slice(name.length + 1)) : undefined;
 }
 
-const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const slug = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") // remove acentos (ã→a, ç→c)
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export function registerDietaPdf(app: express.Application) {
   app.get("/api/dieta/pdf", async (req, res) => {
