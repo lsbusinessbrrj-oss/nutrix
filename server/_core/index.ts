@@ -15,6 +15,7 @@ import { registerGoogleAuth } from "../google-auth";
 import { registerMagicAuth } from "../magic-auth";
 import { registerCronMarketing } from "../cron-marketing";
 import { registerDietaPdf } from "../dieta-pdf";
+import { startMarketingScheduler } from "../marketing-scheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -80,6 +81,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    startMarketingScheduler(); // dispara os e-mails de marketing sozinho (a cada 15 min)
   });
 }
 
