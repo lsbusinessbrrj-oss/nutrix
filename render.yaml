@@ -6,7 +6,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm i -g pnpm@10.4.1 && pnpm install --no-frozen-lockfile && pnpm build
+    buildCommand: npm i -g pnpm@10.4.1 && pnpm install --prod=false --no-frozen-lockfile && pnpm build
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:
