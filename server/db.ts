@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { drizzle } from "drizzle-orm/mysql2";
-import { achievements, dietPlans, payments, streakDays, supportMessages, userFoodSelections, users, workoutPlans } from "../drizzle/schema";
+import { achievements, dietPlans, payments, streakDays, supportMessages, userFoodSelections, users, workoutPlans, marketingEmails, adminMessages } from "../drizzle/schema";
 import type { InsertUser } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -133,6 +133,8 @@ export async function deleteUser(userId: number) {
   await db.delete(achievements).where(eq(achievements.userId, userId));
   await db.delete(workoutPlans).where(eq(workoutPlans.userId, userId));
   await db.delete(supportMessages).where(eq(supportMessages.userId, userId));
+  await db.delete(marketingEmails).where(eq(marketingEmails.userId, userId));
+  await db.delete(adminMessages).where(eq(adminMessages.toUserId, userId));
   await db.delete(users).where(eq(users.id, userId));
 }
 
