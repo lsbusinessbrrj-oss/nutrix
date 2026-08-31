@@ -11,7 +11,7 @@ export function registerCronMarketing(app: express.Application) {
     if (!secret || key !== secret) return res.status(401).json({ ok: false, erro: "não autorizado" });
     try {
       const r = await enviarMarketing();
-      res.json({ ok: true, avaliados: r.avaliados, enviados: r.enviados });
+      res.json({ ok: true, avaliados: r.avaliados, enviados: r.enviados, detalhes: r.detalhes });
     } catch (e) {
       console.error("[cron-marketing]", (e as Error).message);
       res.status(500).json({ ok: false, erro: (e as Error).message });
