@@ -56,6 +56,23 @@ export default function Pagamento() {
     try { setPix(await criarPix.mutateAsync()); } catch (e) { toast.error((e as Error).message); }
   }
 
+  async function copiarPix() {
+    const code = (pix?.copiaECola ?? "") as string;
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success("Código Pix copiado! Cole no seu banco em 'Pix Copia e Cola'.");
+    } catch {
+      // Fallback p/ navegadores que bloqueiam a área de transferência.
+      const ta = document.createElement("textarea");
+      ta.value = code; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand("copy"); toast.success("Código Pix copiado!"); }
+      catch { toast.error("Não consegui copiar automaticamente — segure no código e copie."); }
+      document.body.removeChild(ta);
+    }
+  }
+
   if (sucesso) return <Sucesso entrega={sucesso} onContinue={() => navigate("/dietas")} />;
 
   return (
@@ -126,12 +143,21 @@ export default function Pagamento() {
               </button>
             ) : (
               <>
-                <p className="text-sm text-gray-500 text-center">Pague com o Pix copia-e-cola:</p>
+                {pix.qrBase64 && (
+                  <div className="text-center">
+                    <img src={`data:image/png;base64,${pix.qrBase64}`} alt="QR Code Pix" className="w-52 h-52 mx-auto rounded-lg" />
+                    <p className="text-xs text-gray-400 mt-1">Escaneie o QR no app do seu banco</p>
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 text-center">ou copie o código Pix:</p>
                 <div className="p-3 rounded-xl text-[11px] break-all text-gray-500" style={{ background: "#F7F8F7", border: "1px solid #e2e8e4" }}>
                   {pix.copiaECola}
                 </div>
-                <button onClick={() => { navigator.clipboard?.writeText(pix.copiaECola); toast.success("Código Pix copiado!"); }}
-                  className="w-full py-3 rounded-xl font-bold text-white" style={{ background: "#00A868" }}>Copiar código Pix</button>
+                <button onClick={copiarPix}
+                  className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2" style={{ background: "#00A868" }}>
+                  <Check size={16} /> Copiar código Pix
+                </button>
+                <p className="text-center text-[11px] text-gray-400">No seu banco, escolha <b>“Pix Copia e Cola”</b> e cole o código.</p>
                 {pix.simulado && (
                   <button onClick={liberar} disabled={simular.isPending}
                     className="w-full py-3 rounded-xl font-bold border-2 disabled:opacity-60" style={{ borderColor: "#166534", color: "#166534" }}>
