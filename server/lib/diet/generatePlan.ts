@@ -63,48 +63,46 @@ const CAP_PROT_LEVE = 60, CAP_PROT_PRINCIPAL = 300;
 function montarOpcaoCliente(
   base: Alimento[], targetKcal: number, targetProt: number, leve: boolean, restr: Set<Restricao>, seed: number,
 ): Option {
-  const por = (c: Categoria) => base.filter((a) => a.cat === c);
-  const padrao = (c: Categoria, nomes?: Set<string>) => {
+  const pickPadrao = (c: Categoria, nomes?: Set<string>) => {
     let pool = filtrarPorRestricoes(c, restr);
     if (nomes) { const f = pool.filter((a) => nomes.has(a.nome)); if (f.length) pool = f; }
     return pool.length ? pick(pool, seed) : undefined;
   };
-  const acharVeg = (pred: (a: Alimento) => boolean) => por("vegetal").find(pred) ?? filtrarPorRestricoes("vegetal", restr).find(pred);
 
-  // Estratégia (regras 1, 3, 4): dimensiona a PROTEÍNA para o alvo de proteína
-  // da refeição e o CARBOIDRATO para preencher as calorias restantes. Assim a
-  // opção bate proteína E kcal (as duas prioridades). Fixos não escalam.
-  interface Ent { a: Alimento; g: number; override?: string; fixo?: boolean }
+  interface Ent { a: Alimento; g: number; fixo?: boolean }
   const ents: Ent[] = [];
-  const kOf = (e: Ent) => (e.override ? 0 : (e.a.kcal * e.g) / 100);
-  const usada = () => ents.reduce((s, e) => s + kOf(e), 0);
 
-  const prot = por("proteina")[0] ?? padrao("proteina", leve ? PROT_LEVE : undefined);
-  if (prot && prot.p > 0) {
-    const cap = leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL;
-    ents.push({ a: prot, g: arred5(Math.min(Math.max((targetProt / prot.p) * 100, 20), cap)) });
-  }
-  const carb = por("carboidrato")[0] ?? padrao("carboidrato");
-
-  if (leve) {
-    const fruta = por("fruta")[0] ?? padrao("fruta");
-    if (fruta) ents.push({ a: fruta, g: fruta.gPorMedida });
-  } else {
-    const legume = acharVeg((a) => a.nome === "Brócolis cozido");
-    const salada = acharVeg((a) => a.nome.includes("Salada"));
-    if (legume) ents.push({ a: legume, g: 100, fixo: true });
-    if (salada) ents.push({ a: salada, g: salada.gPorMedida, override: "À vontade", fixo: true });
-  }
-  if (carb) {
-    const rest = Math.max(targetKcal - usada(), 0);
-    const mult = leve ? 4 : 9;
-    ents.push({ a: carb, g: arred5(Math.min(Math.max((rest / carb.kcal) * 100, carb.gPorMedida), carb.gPorMedida * mult)) });
+  // FIEL ÀS ESCOLHAS: inclui TODOS os alimentos que o cliente marcou (sem repetir).
+  const vistos = new Set<string>();
+  for (const a of base) {
+    if (vistos.has(a.nome)) continue;
+    vistos.add(a.nome);
+    const g0 = a.gPorMedida > 0 ? a.gPorMedida : 100;
+    // Bebidas / itens de quase-zero kcal (café, chá) não escalam — porção padrão.
+    const quaseZero = a.cat === "bebida" || a.kcal < 12;
+    ents.push({ a, g: g0, fixo: quaseZero });
   }
 
-  // Ajuste (regras 3/4): resolve fp/fc para bater proteína E calorias do alvo.
+  // Só COMPLETA se a seleção não tiver proteína ou carboidrato (pra não desbalancear).
+  // Usa a CATEGORIA (verdura de baixa caloria não conta como proteína). Os itens
+  // adicionados já entram dimensionados perto do alvo (bom ponto de partida).
+  const kcalAtual = () => ents.reduce((s, e) => s + (e.fixo ? 0 : (e.a.kcal * e.g) / 100), 0);
+  const temProt = base.some((a) => a.cat === "proteina");
+  const temCarb = base.some((a) => a.cat === "carboidrato");
+  if (!temProt) {
+    const p = pickPadrao("proteina", leve ? PROT_LEVE : undefined);
+    if (p && p.p > 0) ents.push({ a: p, g: arred5(Math.min(Math.max((targetProt / p.p) * 100, 20), leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL)) });
+  }
+  if (!temCarb) {
+    const c = pickPadrao("carboidrato");
+    if (c) { const rest = Math.max(targetKcal - kcalAtual(), 0); const mult = leve ? 4 : 9; ents.push({ a: c, g: arred5(Math.min(Math.max((rest / c.kcal) * 100, c.gPorMedida), c.gPorMedida * mult)) }); }
+  }
+  if (!ents.length) { const p = pickPadrao("proteina"); if (p) ents.push({ a: p, g: p.gPorMedida }); }
+
+  // Ajuste (regras 3/4): escala proteínas (fp) e demais (fc) pra bater proteína E kcal.
   const marca = ents.map((e) => ({
-    kcal: kOf(e), prot: e.override ? 0 : (e.a.p * e.g) / 100,
-    fixo: !!e.fixo, prote: !e.fixo && !e.override && ehProteico(e.a.kcal, e.a.p),
+    kcal: (e.a.kcal * e.g) / 100, prot: (e.a.p * e.g) / 100,
+    fixo: !!e.fixo, prote: !e.fixo && ehProteico(e.a.kcal, e.a.p),
   }));
   const e0 = resolverEscalas(marca, targetKcal, targetProt);
   const fixedK = marca.reduce((a, mk) => a + (mk.fixo ? mk.kcal : 0), 0);
@@ -115,11 +113,11 @@ function montarOpcaoCliente(
 
   const foods: FoodItem[] = ents.map((e) => ({
     name: e.a.nome,
-    quantity: e.override ?? formatarMedida(e.a, e.g),
+    quantity: formatarMedida(e.a, e.g),
     substituicoes: subsFor(e.a.nome, e.g, restr),
   }));
-  const kcal = ents.reduce((s, e) => s + kOf(e), 0);
-  const protein = ents.reduce((s, e) => s + (e.override ? 0 : (e.a.p * e.g) / 100), 0);
+  const kcal = ents.reduce((s, e) => s + (e.a.kcal * e.g) / 100, 0);
+  const protein = ents.reduce((s, e) => s + (e.a.p * e.g) / 100, 0);
   return { foods, kcal: Math.round(kcal), protein: Math.round(protein) };
 }
 
@@ -227,17 +225,22 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
     const leve = ref.key === "cafe_manha" || ref.key === "lanche_tarde";
     const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo, alvoProt));
 
-    // Opção 1 = escolha do cliente (se houver); depois as opções de referência.
+    // CADA escolha do cliente vira UMA opção (fiel ao que ele marcou no quiz).
+    // Se escolheu 3, as 3 opções são dele; se escolheu menos, completa com a
+    // referência (variedade). Regra 2: exatamente 3 opções.
     const ids = selecoes?.[ref.key] ?? [];
-    const escolhidos = ids.flatMap(alimentosDoId).filter((a) => passaRestricoes(a, restr));
-    let options: Option[] = escolhidos.length
-      ? [montarOpcaoCliente(escolhidos, alvo, alvoProt, leve, restr, mi), ...refOptions]
-      : [...refOptions];
+    const clientOptions: Option[] = ids
+      .map((id, k) => {
+        const foods = alimentosDoId(id).filter((a) => passaRestricoes(a, restr));
+        return foods.length ? montarOpcaoCliente(foods, alvo, alvoProt, leve, restr, mi + k) : null;
+      })
+      .filter((o): o is Option => !!o);
 
+    const options: Option[] = [...clientOptions, ...refOptions];
     // Regra 2: EXATAMENTE 3 opções. Completa com opções da base se faltar.
-    let seed = mi + 3;
+    let seed = mi + 7;
     while (options.length < 3) options.push(montarOpcaoCliente([], alvo, alvoProt, leve, restr, seed++));
-    options = options.slice(0, 3);
+    options.length = 3;
 
     return { name: ref.name, time: ref.time, calories: Math.round(alvo), protein: Math.round(alvoProt), options };
   });
