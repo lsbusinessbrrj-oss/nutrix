@@ -6,8 +6,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm i -g pnpm@10.4.1 && pnpm install --prod=false --no-frozen-lockfile && pnpm build
-    startCommand: pnpm start
+    buildCommand: corepack pnpm install --prod=false --no-frozen-lockfile && corepack pnpm build
+    startCommand: corepack pnpm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
