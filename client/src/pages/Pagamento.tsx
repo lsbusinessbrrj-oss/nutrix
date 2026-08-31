@@ -14,6 +14,7 @@ export default function Pagamento() {
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
+  const [consentimento, setConsentimento] = useState(false);
   const [pix, setPix] = useState<any>(null);
   const [sucesso, setSucesso] = useState<any>(null);
 
@@ -40,6 +41,7 @@ export default function Pagamento() {
   }
 
   async function assinarCartao() {
+    if (!consentimento) { toast.error("Marque o aceite para continuar."); return; }
     try {
       const a = await criarAssinatura.mutateAsync();
       if (!a.simulado && a.url) {
@@ -53,6 +55,7 @@ export default function Pagamento() {
   }
 
   async function gerarPix() {
+    if (!consentimento) { toast.error("Marque o aceite para continuar."); return; }
     try { setPix(await criarPix.mutateAsync()); } catch (e) { toast.error((e as Error).message); }
   }
 
@@ -117,6 +120,12 @@ export default function Pagamento() {
             </button>
           ))}
         </div>
+
+        {/* Consentimento (produto digital de entrega imediata + política de reembolso) */}
+        <label className="flex items-start gap-2 px-1 cursor-pointer">
+          <input type="checkbox" checked={consentimento} onChange={(e) => setConsentimento(e.target.checked)} className="mt-0.5 accent-[#166534]" />
+          <span className="text-xs text-gray-500">Entendo que a dieta é um <b>produto digital personalizado de entrega imediata</b> e autorizo sua execução na hora. Li e concordo com a <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#166534] underline">Política de Reembolso</a>.</span>
+        </label>
 
         {metodo === "cartao" ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">

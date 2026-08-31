@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { drizzle } from "drizzle-orm/mysql2";
 import { achievements, dietPlans, payments, streakDays, supportMessages, userFoodSelections, users, workoutPlans, marketingEmails, adminMessages } from "../drizzle/schema";
@@ -123,6 +123,15 @@ export async function getUserByPhoneDigits(phoneDigits: string) {
 }
 
 /** Exclui a conta e TODOS os dados do usuário (LGPD — direito ao esquecimento). */
+// Prova de consumo: registra cada download do PDF (defesa em estorno/chargeback).
+export async function registrarDownloadPdf(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users)
+    .set({ pdfDownloads: sql`COALESCE(${users.pdfDownloads}, 0) + 1`, pdfUltimoDownloadEm: new Date() })
+    .where(eq(users.id, userId));
+}
+
 export async function deleteUser(userId: number) {
   const db = await getDb();
   if (!db) return;

@@ -28,6 +28,9 @@ export const users = mysqlTable("users", {
   // Assinatura cancelada pelo cliente: para de renovar, mas mantém o acesso até
   // o fim do período já pago (CDC/legal). Quando null/false, segue ativa.
   assinaturaCancelada: boolean("assinaturaCancelada").default(false),
+  // Prova de consumo (defesa em estorno/chargeback): downloads do PDF.
+  pdfDownloads: int("pdfDownloads").default(0),
+  pdfUltimoDownloadEm: timestamp("pdfUltimoDownloadEm"),
   currentStreak: int("currentStreak").default(0),
   lastActiveDate: timestamp("lastActiveDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

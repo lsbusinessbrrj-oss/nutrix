@@ -43,10 +43,13 @@ export default function Termos() {
           <p>Os pagamentos são processados pela <strong>Mercado Pago</strong>. O NutriX não armazena os dados completos do seu cartão.</p>
         </Secao>
 
-        <Secao n="5" titulo="Cancelamento e reembolso">
-          <p>Você pode <strong>cancelar a assinatura a qualquer momento</strong> pela própria conta (Perfil → final da página) ou pelo suporte. Após o cancelamento, não haverá novas cobranças; o acesso permanece até o fim do período já pago.</p>
-          <p>Nos termos do art. 49 do Código de Defesa do Consumidor, você tem <strong>7 dias</strong> a partir da contratação para desistir e solicitar reembolso do valor da primeira cobrança.</p>
-          <p>Você também pode <strong>excluir sua conta</strong> a qualquer momento — isso cancela a assinatura e apaga seus dados (ver item 8).</p>
+        <Secao n="5" titulo="Reembolso, cancelamento e arrependimento">
+          <p><strong>Natureza do produto.</strong> O NutriX é um <strong>plano alimentar digital personalizado</strong>, gerado e disponibilizado <strong>imediatamente</strong> após a contratação, por assinatura mensal.</p>
+          <p><strong>Direito de arrependimento (7 dias).</strong> Nos termos do art. 49 do Código de Defesa do Consumidor, você pode desistir em até <strong>7 dias corridos</strong> da contratação e solicitar a devolução do valor da primeira cobrança. Por se tratar de conteúdo digital de entrega imediata, ao <strong>acessar ou baixar</strong> sua dieta você concorda com a execução imediata do serviço; ainda assim, respeitamos o prazo de 7 dias para solicitação de reembolso da primeira cobrança.</p>
+          <p><strong>Cancelamento.</strong> Você pode cancelar a assinatura <strong>quando quiser</strong> pela própria conta (Perfil → final da página) ou pelo suporte. Após o cancelamento não há novas cobranças, e o acesso permanece até o fim do período já pago. O cancelamento não gera reembolso de meses já utilizados.</p>
+          <p><strong>Reembolso após 7 dias.</strong> Passado o prazo de arrependimento, não há reembolso de valores já pagos, salvo em caso de falha comprovada na prestação do serviço.</p>
+          <p><strong>Como solicitar.</strong> Pelo suporte <strong>dieta@usenutrix.com.br</strong>. Reembolsos aprovados são processados pela Mercado Pago (Pix em minutos; cartão em alguns dias).</p>
+          <p><strong>Uso indevido.</strong> Solicitações recorrentes de reembolso após acesso/download do conteúdo podem resultar em bloqueio de novas contratações. Você também pode <strong>excluir sua conta</strong> a qualquer momento (ver item 8).</p>
         </Secao>
 
         <Secao n="6" titulo="Comunicações por e-mail e WhatsApp">

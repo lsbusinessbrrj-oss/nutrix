@@ -192,8 +192,9 @@ function resumoTabela(plano: PlanData) {
   );
 }
 
-function rodape() {
-  return h(Text, { style: s.rodape, fixed: true }, "NutriX · Saúde que Alimenta. Treino que Transforma. · Material educativo, não substitui acompanhamento profissional.");
+function rodape(nome?: string, data?: string) {
+  const pessoal = nome ? `Plano personalizado para ${nome}${data ? ` · gerado em ${data}` : ""} · uso pessoal, proibida a revenda. ` : "";
+  return h(Text, { style: s.rodape, fixed: true }, `${pessoal}NutriX · Material educativo, não substitui acompanhamento profissional.`);
 }
 
 function meta(v: string, l: string) {
@@ -298,7 +299,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
       ),
     ),
-    rodape(),
+    rodape(cliente.nome, dataAval),
   );
 
   return h(Document, { title: `Dieta de ${cliente.nome}`, author: "NutriX" }, capa);

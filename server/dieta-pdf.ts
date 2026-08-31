@@ -26,6 +26,7 @@ export function registerDietaPdf(app: express.Application) {
       if (!user) return res.status(401).send("Sessão inválida.");
       if (!user.hasPaidPlan) return res.status(403).send("Libere sua dieta para baixar o PDF.");
       const { nome, pdf } = await gerarPdfUsuario(uid);
+      try { await db.registrarDownloadPdf(uid); } catch { /* log é best-effort */ }
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="dieta-${slug(nome)}.pdf"`);
       res.send(pdf);
