@@ -51,7 +51,19 @@ export function avisoPagamento(tipo: "pagamento" | "assinatura", email: string |
   ]);
 }
 
+// Throttle de avisos de erro: no máximo 1 e-mail por assinatura de erro a cada
+// 10 min. Evita que um erro que se repete a cada request inunde os admins e
+// estoure a cota do Resend (o que suprimiria os e-mails reais dos clientes).
+const COOLDOWN_MS = 10 * 60 * 1000;
+const ultimoErro = new Map<string, number>();
+
 export function avisoErro(onde: string, mensagem: string): void {
+  const assinatura = `${onde}::${String(mensagem).split("\n")[0].slice(0, 120)}`;
+  const agora = Date.now();
+  const anterior = ultimoErro.get(assinatura) ?? 0;
+  if (agora - anterior < COOLDOWN_MS) return; // já avisamos esse erro há pouco
+  ultimoErro.set(assinatura, agora);
+  if (ultimoErro.size > 200) ultimoErro.clear(); // não deixa o mapa crescer sem limite
   notificarAdmin("Erro no sistema ⚠️", `Ocorreu um erro em: ${onde}`, [
     `Detalhe: ${mensagem}`,
   ]);

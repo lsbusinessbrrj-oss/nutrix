@@ -39,7 +39,7 @@ export const paymentRouter = router({
       if (det.status !== "approved") return { aprovado: false, status: det.status };
       // Segurança: o pagamento TEM que ser deste usuário (external_reference = userId).
       // Referência ausente também é rejeitada — nossos fluxos sempre a definem.
-      if (det.externalReference !== String(ctx.user.id)) {
+      if (String(det.externalReference) !== String(ctx.user.id)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Pagamento não corresponde à sua conta." });
       }
       const status = det.status;
@@ -56,11 +56,13 @@ export const paymentRouter = router({
     .input(z.object({ preapprovalId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const det = await detalheAssinatura(input.preapprovalId);
+      // Checa status ANTES do dono (consistente com confirmarPix): sem token/em
+      // teste o detalhe volta "pending" sem referência, e não deve dar FORBIDDEN.
+      if (det.status !== "authorized") return { aprovado: false, status: det.status };
       // Segurança: a assinatura TEM que ser deste usuário (referência ausente também rejeita).
-      if (det.externalReference !== String(ctx.user.id)) {
+      if (String(det.externalReference) !== String(ctx.user.id)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Assinatura não corresponde à sua conta." });
       }
-      if (det.status !== "authorized") return { aprovado: false, status: det.status };
       await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true, assinaturaCancelada: false });
       let entrega = null;
       try {

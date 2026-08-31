@@ -33,8 +33,13 @@ async function liberarEEntregar(externalRef?: string, email?: string): Promise<{
   if (!user && email) user = await db.getUserByEmail(email);
   if (!user) return null;
   const novo = !user.hasPaidPlan;
-  if (novo) await db.updateUserProfile(user.id, { hasPaidPlan: true });
-  await entregarDieta(user.id); // e-mail automático (WhatsApp fica no caminho B)
+  // Só entrega/marca na 1ª vez: o MP re-tenta o webhook (e pode notificar 2x),
+  // e sem esse gate o cliente receberia o e-mail "dieta liberada" repetido.
+  // Marcamos hasPaidPlan ANTES da entrega (que é lenta) pra estreitar a corrida.
+  if (novo) {
+    await db.updateUserProfile(user.id, { hasPaidPlan: true });
+    await entregarDieta(user.id); // e-mail automático (WhatsApp fica no caminho B)
+  }
   return { id: user.id, novo };
 }
 
@@ -61,8 +66,10 @@ export function registerMpWebhook(app: express.Application) {
         const a = await detalheAssinatura(id);
         if (a.status === "authorized") {
           const r = await liberarEEntregar(a.externalReference, a.email);
-          if (r != null) await confirmarAssinatura(r.id); // confirma a assinatura ativada
-          if (r?.novo) avisoPagamento("assinatura", a.email ?? null, "9,99");
+          if (r?.novo) {
+            await confirmarAssinatura(r.id); // e-mail de "assinatura ativada" — só 1x
+            avisoPagamento("assinatura", a.email ?? null, "9,99");
+          }
         }
       }
     } catch (e) {
