@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Check, Lock, ChevronDown, Instagram } from "lucide-react";
@@ -261,6 +262,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F3F4F6]">
+      <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 pb-20">
 
         {/* ── 0. HERO NUTRIX ── */}

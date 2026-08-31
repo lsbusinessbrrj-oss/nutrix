@@ -76,6 +76,23 @@ export const authRouter = router({
       return { success: true, user: semSenha(user) };
     }),
 
+  // Atualiza o perfil do cliente (nome e/ou foto). A foto vem como data URL
+  // (imagem já redimensionada no cliente); guardamos em avatarUrl.
+  atualizarPerfil: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().max(80).optional(),
+        avatarUrl: z.string().max(1_500_000).optional(), // data URL da foto (base64)
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const data: Record<string, unknown> = {};
+      if (input.name !== undefined) data.name = input.name.trim() || null;
+      if (input.avatarUrl !== undefined) data.avatarUrl = input.avatarUrl || null;
+      if (Object.keys(data).length) await db.updateUserProfile(ctx.user.id, data);
+      return { ok: true };
+    }),
+
   // Cancela apenas a assinatura (mantém a conta).
   cancelarAssinatura: protectedProcedure.mutation(async ({ ctx }) => {
     await db.updateUserProfile(ctx.user.id, { hasPaidPlan: false });

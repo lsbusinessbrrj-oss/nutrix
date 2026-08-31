@@ -1,10 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
-import { User as UserIcon, Trophy, Mail, Pencil, Weight, Ruler, Activity, Target, Phone, Flame, MessageCircle } from "lucide-react";
+import { User as UserIcon, Trophy, Mail, Pencil, Weight, Ruler, Activity, Target, Phone, Flame, MessageCircle, Camera } from "lucide-react";
 import { toast } from "sonner";
+
+// Redimensiona a imagem para um quadrado pequeno (data URL) — foto de perfil leve.
+function resizeImage(file: File, size = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const min = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("canvas")); return; }
+      ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+    img.src = url;
+  });
+}
 
 type Rarity = "Common" | "Uncommon" | "Rare" | "Legendary";
 const RARITY: Record<Rarity, { bg: string; color: string }> = {
@@ -54,6 +74,16 @@ export default function Perfil() {
     if (!loading && !isAuthenticated) navigate("/login");
   }, [loading, isAuthenticated]);
 
+  // Rola até a seção pedida pelo menu (?s=foto | ?s=config).
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("s");
+    if (s !== "foto" && s !== "config") return;
+    setTab("perfil");
+    const id = s === "config" ? "perfil-config" : "perfil-foto";
+    const t = setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
+    return () => clearTimeout(t);
+  }, []);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#F7F8F7" }}>
       <div className="w-10 h-10 rounded-full border-4 border-[#43A047] border-t-transparent animate-spin" />
@@ -91,6 +121,30 @@ export default function Perfil() {
 }
 
 function PerfilTab({ user, p, streak, navigate }: any) {
+  const utils = trpc.useUtils();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const atualizar = trpc.auth.atualizarPerfil.useMutation({
+    onSuccess: async () => { await utils.auth.me.invalidate(); await utils.profile.get.invalidate(); },
+  });
+  const nome: string = user?.name || "";
+
+  async function onFoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (fileRef.current) fileRef.current.value = "";
+    if (!file) return;
+    try {
+      const avatarUrl = await resizeImage(file);
+      await atualizar.mutateAsync({ avatarUrl });
+      toast.success("Foto atualizada!");
+    } catch { toast.error("Não consegui carregar essa imagem. Tente outra."); }
+  }
+  async function editarNome() {
+    const novo = window.prompt("Como você quer ser chamado(a)?", nome);
+    if (novo == null) return;
+    try { await atualizar.mutateAsync({ name: novo.trim() }); toast.success("Nome atualizado!"); }
+    catch (err) { toast.error((err as Error).message); }
+  }
+
   const bmi = p?.weight && p?.height ? (p.weight / ((p.height / 100) ** 2)) : null;
   const bmiLabel = bmi == null ? null
     : bmi < 18.5 ? { label: "Abaixo do peso", color: "#1565C0" }
@@ -105,19 +159,27 @@ function PerfilTab({ user, p, streak, navigate }: any) {
   return (
     <div className="space-y-5">
       {/* Profile card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+      <div id="perfil-foto" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center scroll-mt-20">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFoto} />
         <div className="relative inline-block">
           <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden mx-auto">
-            {p?.avatarUrl ? <img src={p.avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+            {(user?.avatarUrl ?? p?.avatarUrl) ? <img src={user?.avatarUrl ?? p?.avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
               : <UserIcon size={36} className="text-gray-300" />}
           </div>
-          <button onClick={() => toast.info("Editar foto em breve!")}
-            className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center shadow">
-            <Pencil size={13} />
+          <button onClick={() => fileRef.current?.click()} disabled={atualizar.isPending}
+            title="Trocar foto"
+            className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#16A34A] text-white flex items-center justify-center shadow disabled:opacity-60">
+            <Camera size={14} />
           </button>
         </div>
-        <p className="flex items-center justify-center gap-2 mt-4 text-gray-800 font-medium">
-          <Mail size={16} className="text-gray-400" /> {user?.email}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <p className="text-gray-900 font-bold text-lg">{nome || "Adicione seu nome"}</p>
+          <button onClick={editarNome} title="Editar nome" className="text-gray-400 hover:text-[#16A34A]">
+            <Pencil size={14} />
+          </button>
+        </div>
+        <p className="flex items-center justify-center gap-2 mt-1 text-gray-500 text-sm">
+          <Mail size={15} className="text-gray-400" /> {user?.email}
         </p>
         {lastAccess && (
           <p className="text-xs text-gray-400 mt-1">
@@ -219,12 +281,17 @@ function ContaSection({ navigate }: { navigate: (to: string) => void }) {
   }
 
   return (
-    <div className="mt-10 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
-      <p className="text-[10px] uppercase tracking-wider text-gray-300 font-semibold">Conta</p>
+    <div id="perfil-config" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 scroll-mt-20">
+      <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-3">Configurações da conta</p>
       <button onClick={handleCancelar} disabled={cancelar.isPending}
-        className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50">Cancelar assinatura</button>
+        className="w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 border-b border-gray-100 disabled:opacity-50">
+        Cancelar assinatura
+      </button>
       <button onClick={handleExcluir} disabled={excluir.isPending}
-        className="text-xs text-gray-300 hover:text-red-500 disabled:opacity-50">Excluir minha conta</button>
+        className="w-full text-left text-sm text-red-500 hover:text-red-600 py-2 disabled:opacity-50">
+        Excluir minha conta
+      </button>
+      <p className="text-[11px] text-gray-300 mt-2">Ao excluir a conta, a assinatura é cancelada e todos os dados são apagados (LGPD).</p>
     </div>
   );
 }
