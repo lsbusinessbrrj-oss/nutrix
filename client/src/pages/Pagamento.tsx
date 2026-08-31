@@ -30,9 +30,14 @@ export default function Pagamento() {
   if (!isAuthenticated) return null;
 
   async function liberar() {
-    const r = await simular.mutateAsync();
-    trackPurchase(); // conversão (compra/assinatura)
-    setSucesso(r.entrega);
+    try {
+      const r = await simular.mutateAsync();
+      trackPurchase(); // conversão (compra/assinatura)
+      if (r.entrega) setSucesso(r.entrega);
+      else navigate("/dietas"); // pago, mas a entrega falhou → segue pro app
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Não foi possível liberar agora. Tente novamente.");
+    }
   }
 
   async function assinarCartao() {

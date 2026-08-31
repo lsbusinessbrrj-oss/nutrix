@@ -12,7 +12,7 @@ export async function assinarTokenLogin(userId: number): Promise<string> {
   return new SignJWT({ uid: userId, typ: "magic" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("14d")
+    .setExpirationTime("7d") // link de login por e-mail: curto por segurança
     .sign(secret());
 }
 

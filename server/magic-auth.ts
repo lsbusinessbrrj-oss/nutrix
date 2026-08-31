@@ -7,9 +7,12 @@ import { assinarSessao } from "./auth/session";
 import { lerTokenLogin } from "./auth/magic";
 import * as db from "./db";
 
-// Só permite caminhos internos (evita open-redirect).
+// Só permite caminhos internos simples (evita open-redirect, inclusive via "\"
+// que alguns navegadores tratam como "/", e "//host").
 function destinoSeguro(next: string | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/home";
+  if (!next) return "/home";
+  // Precisa começar com "/", não ser "//" nem "/\", e conter só caracteres de path seguros.
+  if (!/^\/[A-Za-z0-9\-_/]*$/.test(next)) return "/home";
   return next;
 }
 

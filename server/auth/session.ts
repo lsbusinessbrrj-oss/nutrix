@@ -11,7 +11,7 @@ function secret(): Uint8Array {
 }
 
 export async function assinarSessao(userId: number): Promise<string> {
-  return new SignJWT({ uid: userId })
+  return new SignJWT({ uid: userId, typ: "session" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(ONE_YEAR)
@@ -21,6 +21,9 @@ export async function assinarSessao(userId: number): Promise<string> {
 export async function verificarSessao(token: string): Promise<number | null> {
   try {
     const { payload } = await jwtVerify(token, secret());
+    // Não aceitar tokens de outro tipo (magic/reset) como sessão. Sessões antigas
+    // não tinham "typ" — por isso só rejeitamos quando há um typ diferente de "session".
+    if (payload.typ && payload.typ !== "session") return null;
     const uid = payload.uid;
     return typeof uid === "number" ? uid : null;
   } catch {

@@ -1,9 +1,13 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 import { getStripe } from "../lib/stripe";
-import { criarPix, criarCheckout, criarAssinatura, statusPagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
+import { criarPix, criarCheckout, criarAssinatura, statusPagamento, detalhePagamento, PRECO_DIETA } from "../lib/payments/mercadopago";
 import { entregarDieta, confirmarAssinatura } from "../lib/delivery";
+
+// Modo teste ligado por variável de ambiente DO SERVIDOR (não confiar no client).
+const MODO_TESTE = process.env.MODO_TESTE === "1" || process.env.VITE_MODO_TESTE === "1";
 
 export const paymentRouter = router({
   // ── Mercado Pago ──
@@ -30,19 +34,36 @@ export const paymentRouter = router({
   confirmarPix: protectedProcedure
     .input(z.object({ paymentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const status = await statusPagamento(input.paymentId);
-      if (status !== "approved") return { aprovado: false, status };
+      const det = await detalhePagamento(input.paymentId);
+      if (det.status !== "approved") return { aprovado: false, status: det.status };
+      // Segurança: o pagamento tem que ser DESTE usuário (external_reference = userId).
+      if (det.externalReference && det.externalReference !== String(ctx.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Pagamento não corresponde à sua conta." });
+      }
+      const status = det.status;
       await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true });
-      const entrega = await entregarDieta(ctx.user.id);
+      let entrega = null;
+      try { entrega = await entregarDieta(ctx.user.id); }
+      catch (e) { console.error("[confirmarPix] entrega falhou:", (e as Error).message); }
       return { aprovado: true, status, entrega };
     }),
 
   // Simula a aprovação do pagamento (para testes): libera e entrega a dieta.
+  // A entrega é "best-effort": se falhar (ex.: perfil incompleto), o pagamento
+  // continua aprovado (o cliente pagou) — a dieta pode ser gerada depois no app.
   simularAprovacao: protectedProcedure.mutation(async ({ ctx }) => {
+    // Só funciona em modo teste (trava do lado do servidor). Em produção real,
+    // ninguém libera plano sem pagar chamando esta rota direto.
+    if (!MODO_TESTE) throw new TRPCError({ code: "FORBIDDEN", message: "Indisponível." });
     await db.updateUserProfile(ctx.user.id, { hasPaidPlan: true });
-    await confirmarAssinatura(ctx.user.id); // e-mail + WhatsApp de "assinatura ativada"
-    const entrega = await entregarDieta(ctx.user.id);
-    return { aprovado: true, entrega };
+    try {
+      await confirmarAssinatura(ctx.user.id); // e-mail de "assinatura ativada"
+      const entrega = await entregarDieta(ctx.user.id);
+      return { aprovado: true, entrega };
+    } catch (e) {
+      console.error("[simularAprovacao] entrega falhou:", (e as Error).message);
+      return { aprovado: true, entrega: null };
+    }
   }),
 
   createCheckout: protectedProcedure.mutation(async ({ ctx }) => {

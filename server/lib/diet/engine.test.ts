@@ -60,9 +60,22 @@ describe("generatePlan — templates da referência", () => {
     expect(ovo.substituicoes.map((s) => s.name)).toContain("Queijo minas");
   });
 
-  it("na escala de referência (~87 kg) mantém as quantidades das fotos", () => {
-    const ovo = gerarPlano(homem87).meals[0].options[0].foods[0];
-    expect(ovo.quantity).toBe("2 unidades médias ou 100g");
+  // Obs.: o motor agora usa 1,8 g/kg de proteína (planilha da nutri), não os
+  // 2,05 g/kg do plano das fotos — então as quantidades no perfil de referência
+  // ficam um pouco menores que as fotos. O que precisa valer é a "conta fechar":
+  // cada opção soma o alvo diário de kcal e proteína.
+  it("na escala de referência, cada opção fecha a conta diária (±6% kcal, ±10% prot)", () => {
+    const plano = gerarPlano(homem87);
+    const { linhas, metaKcal, metaProt } = (plano as any).resumo;
+    expect(linhas).toHaveLength(3);
+    for (const l of linhas) {
+      expect(Math.abs(l.kcal - metaKcal) / metaKcal).toBeLessThanOrEqual(0.06);
+      expect(Math.abs(l.protein - metaProt) / metaProt).toBeLessThanOrEqual(0.10);
+    }
+    // O primeiro item do café (ovo) sai numa quantidade sensata e positiva.
+    const ovo = plano.meals[0].options[0].foods[0];
+    expect(ovo.name).toBe("Ovo de galinha cozido");
+    expect(ovo.quantity).toMatch(/\d/);
   });
 
   it("água calculada pelo peso (mín. 2,5 L)", () => {

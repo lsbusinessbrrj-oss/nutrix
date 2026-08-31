@@ -94,21 +94,29 @@ export async function enviarMarketing(opts: { dryRun?: boolean; maxDias?: number
     if (!pendentes.length) continue;
     const tipo = pendentes[0];
 
-    const link = await linkMagico(u.id, destino[tipo]);
-    const { assunto, html, text } = montar(tipo, u.name, link);
-
     if (dryRun) {
       detalhes.push(`[dry] #${u.id} ${u.email} → ${tipo}`);
       enviados++;
       continue;
     }
 
+    // Reserva o envio ANTES de mandar. Com o índice único (userId,type), duas
+    // execuções concorrentes do cron não conseguem reservar o mesmo → sem duplicado.
+    try {
+      await conn.insert(marketingEmails).values({ userId: u.id, type: tipo });
+    } catch {
+      continue; // já reservado por outra rodada
+    }
+
+    const link = await linkMagico(u.id, destino[tipo]);
+    const { assunto, html, text } = montar(tipo, u.name, link);
     const r = await enviarEmailSimples(u.email, assunto, html, text);
     if (r.ok) {
-      await conn.insert(marketingEmails).values({ userId: u.id, type: tipo });
       enviados++;
       detalhes.push(`✅ #${u.id} ${u.email} → ${tipo}${r.simulado ? " (simulado)" : ""}`);
     } else {
+      // Desfaz a reserva pra tentar de novo na próxima rodada.
+      try { await conn.delete(marketingEmails).where(and(eq(marketingEmails.userId, u.id), eq(marketingEmails.type, tipo))); } catch { /* ignora */ }
       detalhes.push(`❌ #${u.id} ${u.email} → ${tipo}: ${r.detalhe ?? "falhou"}`);
     }
   }
