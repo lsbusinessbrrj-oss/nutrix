@@ -12,6 +12,8 @@ import { registerStripeWebhook } from "../stripe-webhook";
 import { registerWhatsappWebhook } from "../whatsapp-webhook";
 import { registerMpWebhook } from "../mp-webhook";
 import { registerGoogleAuth } from "../google-auth";
+import { registerMagicAuth } from "../magic-auth";
+import { registerCronMarketing } from "../cron-marketing";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -45,6 +47,8 @@ async function startServer() {
   registerWhatsappWebhook(app);
   registerMpWebhook(app);
   registerGoogleAuth(app);
+  registerMagicAuth(app);
+  registerCronMarketing(app);
   // Health check leve (para monitor de uptime manter o serviço acordado no Render).
   app.get("/health", (_req, res) => res.json({ ok: true, service: "nutrix" }));
   // tRPC API

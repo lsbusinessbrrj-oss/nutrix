@@ -110,6 +110,14 @@ export const streakDays = mysqlTable("streak_days", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Controle de e-mails de marketing já enviados (evita duplicidade no funil).
+export const marketingEmails = mysqlTable("marketing_emails", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 40 }).notNull(),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type DietPlan = typeof dietPlans.$inferSelect;
