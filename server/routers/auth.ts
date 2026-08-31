@@ -153,14 +153,16 @@ export const authRouter = router({
       return { ok: true } as const;
     }),
 
-  // Cancela apenas a assinatura (mantém a conta).
+  // Cancela a assinatura: para de renovar (sem novas cobranças), mas MANTÉM o
+  // acesso até o fim do período já pago (conforme CDC). Não corta na hora.
   cancelarAssinatura: protectedProcedure.mutation(async ({ ctx }) => {
-    await db.updateUserProfile(ctx.user.id, { hasPaidPlan: false });
-    // Cancelamento no Mercado Pago é feito com o id da assinatura (quando MP configurado).
+    await db.updateUserProfile(ctx.user.id, { assinaturaCancelada: true });
+    // O cancelamento efetivo no Mercado Pago (parar a recorrência) é feito com o
+    // id da assinatura quando o MP de produção estiver configurado.
     return { ok: true };
   }),
 
-  // Exclui a conta e todos os dados (cancela a assinatura junto). LGPD.
+  // Exclui a conta e todos os dados (direito garantido pela LGPD, a qualquer momento).
   excluirConta: protectedProcedure.mutation(async ({ ctx }) => {
     await db.deleteUser(ctx.user.id);
     const opts = getSessionCookieOptions(ctx.req);

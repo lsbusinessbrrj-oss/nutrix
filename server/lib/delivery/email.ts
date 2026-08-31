@@ -28,6 +28,38 @@ export function corpoEmailTexto(nome: string): string {
     `Qualquer dúvida, é só responder este e-mail. Bons resultados!\n\nAbraço,\nEquipe NutriX`;
 }
 
+// E-mail de "dieta liberada" (sem PDF): avisa que a dieta está no app e leva pra lá.
+export function assuntoDietaLiberada(nome: string) {
+  const primeiro = nome.split(" ")[0] || nome;
+  return `${primeiro}, sua dieta está liberada`;
+}
+
+export function corpoDietaLiberada(nome: string, link: string): string {
+  const primeiro = nome.split(" ")[0] || nome;
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#0f172a">
+    <div style="background:#166534;padding:20px;border-radius:12px 12px 0 0;text-align:center">
+      <span style="color:#fff;font-size:22px;font-weight:800">Nutri<span style="color:#E53935">X</span></span>
+    </div>
+    <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
+      <h2 style="color:#166534;margin:0 0 12px">Sua dieta está pronta, ${primeiro}!</h2>
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.55">Seu plano alimentar personalizado já está liberado no app, com as calorias e a proteína calculadas para o seu objetivo, as opções por refeição e as substituições.</p>
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.55">É só acessar pra ver sua dieta e <strong>baixar o PDF</strong> quando quiser.</p>
+      <p style="text-align:center;margin:24px 0">
+        <a href="${link}" style="background:#166534;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px;display:inline-block">Ver minha dieta</a>
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:20px">Equipe NutriX · Saúde que Alimenta. Treino que Transforma.</p>
+    </div>
+  </div>`;
+}
+
+export function textoDietaLiberada(nome: string, link: string): string {
+  const primeiro = nome.split(" ")[0] || nome;
+  return `Sua dieta está pronta, ${primeiro}!\n\n` +
+    `Seu plano alimentar personalizado já está liberado no app, com as calorias e a proteína calculadas para o seu objetivo, as opções por refeição e as substituições. É só acessar pra ver sua dieta e baixar o PDF quando quiser.\n\n` +
+    `Ver minha dieta: ${link}\n\nEquipe NutriX · Saúde que Alimenta. Treino que Transforma.`;
+}
+
 export function assuntoAssinatura() {
   return "Sua assinatura NutriX está ativa";
 }

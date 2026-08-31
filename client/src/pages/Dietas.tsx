@@ -44,7 +44,10 @@ export default function Dietas() {
     { emoji: "🛒", label: "Lista Compras", action: () => toast.info("Lista de compras em breve!") },
     { emoji: "👩‍⚕️", label: "Consulta", action: () => toast.info("Agendamento em breve!") },
     { emoji: "📚", label: "Guias", action: () => toast.info("Guias em breve!") },
-    { emoji: "📥", label: "Baixar PDF", action: () => toast.info("Download em breve!") },
+    { emoji: "📥", label: "Baixar PDF", action: () => {
+      if (!(me as any)?.hasPaidPlan) { toast.error("Libere sua dieta para baixar o PDF."); return; }
+      window.open("/api/dieta/pdf", "_blank");
+    } },
     { emoji: "👤", label: "Perfil", action: () => navigate("/perfil") },
   ];
 

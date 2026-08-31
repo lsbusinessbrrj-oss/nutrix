@@ -25,6 +25,9 @@ export const users = mysqlTable("users", {
   wantsChocolate: boolean("wantsChocolate").default(false),
   stripeCustomerId: varchar("stripeCustomerId", { length: 64 }),
   hasPaidPlan: boolean("hasPaidPlan").default(false),
+  // Assinatura cancelada pelo cliente: para de renovar, mas mantém o acesso até
+  // o fim do período já pago (CDC/legal). Quando null/false, segue ativa.
+  assinaturaCancelada: boolean("assinaturaCancelada").default(false),
   currentStreak: int("currentStreak").default(0),
   lastActiveDate: timestamp("lastActiveDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

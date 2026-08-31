@@ -14,6 +14,7 @@ import { registerMpWebhook } from "../mp-webhook";
 import { registerGoogleAuth } from "../google-auth";
 import { registerMagicAuth } from "../magic-auth";
 import { registerCronMarketing } from "../cron-marketing";
+import { registerDietaPdf } from "../dieta-pdf";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -49,6 +50,7 @@ async function startServer() {
   registerGoogleAuth(app);
   registerMagicAuth(app);
   registerCronMarketing(app);
+  registerDietaPdf(app);
   // Health check leve (para monitor de uptime manter o serviço acordado no Render).
   app.get("/health", (_req, res) => res.json({ ok: true, service: "nutrix" }));
   // tRPC API

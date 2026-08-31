@@ -309,8 +309,8 @@ function ContaSection({ navigate }: { navigate: (to: string) => void }) {
   const excluir = trpc.auth.excluirConta.useMutation();
 
   async function handleCancelar() {
-    if (!window.confirm("Deseja cancelar sua assinatura? Você deixa de ter acesso ao plano e não haverá novas cobranças.")) return;
-    try { await cancelar.mutateAsync(); toast.success("Assinatura cancelada."); }
+    if (!window.confirm("Deseja cancelar sua assinatura? Não haverá novas cobranças e você mantém o acesso até o fim do período já pago.")) return;
+    try { await cancelar.mutateAsync(); toast.success("Assinatura cancelada. Você mantém o acesso até o fim do período pago."); }
     catch (e) { toast.error((e as Error).message); }
   }
   async function handleExcluir() {
