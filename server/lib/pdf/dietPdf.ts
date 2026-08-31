@@ -233,9 +233,8 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ? h(Image, { src: hdr, style: { width: 595, height: 247, marginTop: -28, marginLeft: -32, marginRight: -32, marginBottom: 6 } })
       : h(View, { style: { height: 8 } }),
 
-    // Distribui dados + objetivo + como-seguir para preencher a página 1 (sem espaço vazio feio).
-    h(View, { style: { flexGrow: 1, justifyContent: "space-around" } },
-    h(View, { style: s.header },
+    // Dados + objetivo + como-seguir agrupados no topo, com espaçamento igual.
+    h(View, { style: { ...s.header, marginBottom: 0 } },
       folhaGrande(),
       h(Text, { style: s.headerTit }, "Dados do cliente"),
       h(View, { style: s.dadoRow },
@@ -250,7 +249,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    h(View, { style: s.metasCard },
+    h(View, { style: { ...s.metasCard, marginTop: 10, marginBottom: 0 } },
       h(Text, { style: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.verde, marginBottom: 4 } }, "Objetivo diário"),
       h(View, { style: s.metaRow },
         meta(`${plano.totalCalories}`, "kcal/dia"),
@@ -262,7 +261,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     ),
 
     // Regra 13: instruções obrigatórias de como seguir o plano.
-    h(View, { style: { backgroundColor: "#FBF6E4", border: "1 solid #EAD9A0", borderRadius: 6, padding: 8, marginTop: 4, marginBottom: 2 } },
+    h(View, { style: { backgroundColor: "#FBF6E4", border: "1 solid #EAD9A0", borderRadius: 6, padding: 8, marginTop: 10, marginBottom: 2 } },
       h(Text, { style: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: C.amarelo, marginBottom: 3 } }, "Como seguir seu plano alimentar"),
       ...[
         "Em cada refeição, escolha apenas UMA das 3 opções apresentadas.",
@@ -272,7 +271,6 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         "Respeite as quantidades indicadas nos alimentos e nas substituições.",
       ].map((t, i) => h(Text, { key: i, style: { fontSize: 8, color: C.texto, marginBottom: 1, lineHeight: 1.3 } }, "•  " + t)),
     ),
-    ), // fecha o container flexGrow da página 1
 
     rodape(cliente.nome, dataAval),
   );
@@ -282,9 +280,10 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     fundo(),
     h(View, { style: { marginBottom: 6, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
       h(Text, { style: { fontSize: 13, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Suas refeições — escolha 1 opção por refeição")),
+    // Quebras controladas: p2 = café+lanche manhã; p3 = almoço+café tarde; p4 = jantar+resumo.
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, minPresenceAhead: 60, style: { marginBottom: 4 } },
-        h(View, { style: s.mealTitle, minPresenceAhead: 50 },
+      h(View, { key: mi, break: mi === 2 || mi === 4, style: { marginBottom: 8 } },
+        h(View, { style: s.mealTitle },
           iconeRefeicao(mi),
           h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, `${meal.time} · ${meal.name}`),
         ),
