@@ -16,7 +16,6 @@ export default function Pagamento() {
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
   const [pix, setPix] = useState<any>(null);
   const [sucesso, setSucesso] = useState<any>(null);
-  const [card, setCard] = useState({ numero: "", nome: "", validade: "", cvv: "" });
 
   const criarPix = trpc.payment.criarPix.useMutation();
   const criarAssinatura = trpc.payment.criarAssinatura.useMutation();
@@ -41,15 +40,10 @@ export default function Pagamento() {
   }
 
   async function assinarCartao() {
-    const numeros = card.numero.replace(/\D/g, "");
-    if (numeros.length < 13 || !card.nome || card.validade.length < 4 || card.cvv.length < 3) {
-      toast.error("Preencha os dados do cartão.");
-      return;
-    }
     try {
       const a = await criarAssinatura.mutateAsync();
       if (!a.simulado && a.url) {
-        // Mercado Pago configurado: vai para a página segura de assinatura.
+        // Vai para a página SEGURA do Mercado Pago (o cartão é digitado lá).
         window.location.href = a.url;
         return;
       }
@@ -111,19 +105,13 @@ export default function Pagamento() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
             <div className="flex items-start gap-2 p-3 rounded-xl mb-1" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
               <ShieldCheck size={18} style={{ color: "#EA580C" }} className="flex-shrink-0 mt-0.5" />
-              <p className="text-xs" style={{ color: "#9A3412" }}>Ao cadastrar o cartão, você ativa a <b>assinatura mensal</b> de R$ 9,99 (cobrança automática todo mês). Cancele quando quiser.</p>
+              <p className="text-xs" style={{ color: "#9A3412" }}>Você vai para a página <b>segura do Mercado Pago</b> para informar o cartão e ativar a <b>assinatura mensal</b> de R$ 9,99 (cobrança automática todo mês). Cancele quando quiser.</p>
             </div>
-            <Campo label="Número do cartão" value={card.numero} onChange={(v) => setCard({ ...card, numero: v.replace(/[^\d ]/g, "") })} placeholder="0000 0000 0000 0000" />
-            <Campo label="Nome no cartão" value={card.nome} onChange={(v) => setCard({ ...card, nome: v.toUpperCase() })} placeholder="COMO ESTÁ NO CARTÃO" />
-            <div className="grid grid-cols-2 gap-3">
-              <Campo label="Validade" value={card.validade} onChange={(v) => setCard({ ...card, validade: v.replace(/[^\d/]/g, "") })} placeholder="MM/AA" />
-              <Campo label="CVV" value={card.cvv} onChange={(v) => setCard({ ...card, cvv: v.replace(/\D/g, "") })} placeholder="123" />
-            </div>
-            <button onClick={assinarCartao} disabled={simular.isPending || criarAssinatura.isPending}
+            <button onClick={assinarCartao} disabled={criarAssinatura.isPending}
               className="w-full py-4 rounded-xl font-bold text-white text-base disabled:opacity-60 flex items-center justify-center gap-2"
               style={{ background: "#166534" }}>
-              {(simular.isPending || criarAssinatura.isPending) ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
-              {(simular.isPending || criarAssinatura.isPending) ? "Ativando..." : "Ativar assinatura · R$ 9,99/mês"}
+              {criarAssinatura.isPending ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+              {criarAssinatura.isPending ? "Abrindo..." : "Assinar · R$ 9,99/mês"}
             </button>
             <p className="text-center text-[11px] text-gray-400">🔒 Pagamento processado pelo Mercado Pago</p>
           </div>
@@ -154,27 +142,9 @@ export default function Pagamento() {
             )}
           </div>
         )}
-
-        {/* Simular (teste) para o cartão também */}
-        {metodo === "cartao" && (
-          <button onClick={liberar} disabled={simular.isPending}
-            className="w-full text-xs text-gray-400 underline">
-            Simular pagamento aprovado (teste)
-          </button>
-        )}
         </>
         )}
       </div>
-    </div>
-  );
-}
-
-function Campo({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
     </div>
   );
 }
