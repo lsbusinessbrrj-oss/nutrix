@@ -7,6 +7,9 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { CreditCard, QrCode, Check, ShieldCheck, Loader2, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
+// Modo teste: quando ligado (VITE_MODO_TESTE=1) esconde o pagamento e libera a dieta direto.
+const MODO_TESTE = import.meta.env.VITE_MODO_TESTE === "1" || import.meta.env.VITE_MODO_TESTE === "true";
+
 export default function Pagamento() {
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
@@ -70,6 +73,24 @@ export default function Pagamento() {
           <p className="text-xs text-gray-400 mt-1">Assinatura mensal · cancele quando quiser</p>
         </div>
 
+        {MODO_TESTE ? (
+          /* MODO TESTE — sem pagamento, libera direto */
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4 text-center">
+            <div className="flex items-start gap-2 p-3 rounded-xl text-left" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+              <ShieldCheck size={18} style={{ color: "#2563EB" }} className="flex-shrink-0 mt-0.5" />
+              <p className="text-xs" style={{ color: "#1E40AF" }}>
+                <b>Ambiente de teste.</b> O pagamento está desativado nesta fase. Clique abaixo para liberar sua dieta e testar a entrega por e-mail/WhatsApp.
+              </p>
+            </div>
+            <button onClick={liberar} disabled={simular.isPending}
+              className="w-full py-4 rounded-xl font-bold text-white text-base disabled:opacity-60 flex items-center justify-center gap-2"
+              style={{ background: "#166534" }}>
+              {simular.isPending ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+              {simular.isPending ? "Liberando..." : "Acessar minha dieta (modo teste)"}
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Método */}
         <div className="flex gap-2 p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm">
           {([["cartao", "Cartão", CreditCard], ["pix", "Pix", QrCode]] as const).map(([id, label, Icon]) => (
@@ -135,6 +156,8 @@ export default function Pagamento() {
             className="w-full text-xs text-gray-400 underline">
             Simular pagamento aprovado (teste)
           </button>
+        )}
+        </>
         )}
       </div>
     </div>

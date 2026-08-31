@@ -34,11 +34,26 @@ export const adminRouter = router({
       .where(and(eq(payments.status, "completed"), sql`${payments.createdAt} >= ${sevenDaysAgo}`));
 
     // Série dos últimos 14 dias: cadastros e compras por dia.
+    // Agrupamos em JS (e não via DATE()/GROUP BY no SQL) para evitar incompatibilidades do TiDB.
     const catorzeDias = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const cadastrosDia = await db.select({ dia: sql<string>`DATE(${users.createdAt})`, c: count() })
-      .from(users).where(sql`${users.createdAt} >= ${catorzeDias}`).groupBy(sql`DATE(${users.createdAt})`);
-    const comprasDia = await db.select({ dia: sql<string>`DATE(${payments.createdAt})`, c: count() })
-      .from(payments).where(and(eq(payments.status, "completed"), sql`${payments.createdAt} >= ${catorzeDias}`)).groupBy(sql`DATE(${payments.createdAt})`);
+    const bucketDia = (rows: { createdAt: Date | string | null }[]) => {
+      const m: Record<string, number> = {};
+      for (const r of rows) {
+        if (!r.createdAt) continue;
+        const dia = new Date(r.createdAt).toISOString().slice(0, 10);
+        m[dia] = (m[dia] ?? 0) + 1;
+      }
+      return Object.entries(m).map(([dia, c]) => ({ dia, c }));
+    };
+    let cadastrosDia: { dia: string; c: number }[] = [];
+    let comprasDia: { dia: string; c: number }[] = [];
+    try {
+      const cadRows = await db.select({ createdAt: users.createdAt }).from(users).where(sql`${users.createdAt} >= ${catorzeDias}`);
+      const compRows = await db.select({ createdAt: payments.createdAt }).from(payments)
+        .where(and(eq(payments.status, "completed"), sql`${payments.createdAt} >= ${catorzeDias}`));
+      cadastrosDia = bucketDia(cadRows);
+      comprasDia = bucketDia(compRows);
+    } catch { /* série é opcional — não derruba o dashboard */ }
 
     const compras = totalPayments?.count ?? 0;
     const totUsers = totalUsers?.count ?? 0;
