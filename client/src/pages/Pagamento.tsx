@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
+import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { CreditCard, QrCode, Check, ShieldCheck, Loader2, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,11 +20,15 @@ export default function Pagamento() {
   const simular = trpc.payment.simularAprovacao.useMutation();
 
   useEffect(() => { if (!loading && !isAuthenticated) navigate("/login"); }, [loading, isAuthenticated, navigate]);
+  // Início do checkout (rastreamento de tráfego pago).
+  useEffect(() => { trackInitiateCheckout(); }, []);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{ background: "#F7F8F7" }}><Loader2 className="w-8 h-8 animate-spin text-[#43A047]" /></div>;
   if (!isAuthenticated) return null;
 
   async function liberar() {
     const r = await simular.mutateAsync();
+    trackPurchase(); // conversão (compra/assinatura)
     setSucesso(r.entrega);
   }
 

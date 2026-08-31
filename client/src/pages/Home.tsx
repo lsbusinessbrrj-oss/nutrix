@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
+import { trackViewContent, trackAddToCart } from "@/lib/tracking";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Check, Lock, ChevronDown, Instagram } from "lucide-react";
@@ -211,6 +212,9 @@ export default function Home() {
     if (!loading && !isAuthenticated) navigate("/login");
   }, [loading, isAuthenticated, navigate]);
 
+  // Viu a oferta/quiz (rastreamento de tráfego pago).
+  useEffect(() => { trackViewContent(); }, []);
+
   const toggleFood = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
     setList((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev
@@ -245,6 +249,7 @@ export default function Home() {
           { mealType: "lanche_manha",  foods: skipLanche ? [] : lancheManha },
         ],
       });
+      trackAddToCart(); // montou a dieta → seguindo pro pagamento
       navigate("/pagamento");
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao processar. Tente novamente.");

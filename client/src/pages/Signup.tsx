@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { trackLead } from "@/lib/tracking";
 
 export default function Signup() {
   const [, navigate] = useLocation();
@@ -30,6 +31,7 @@ export default function Signup() {
     }
     try {
       await signupMut.mutateAsync({ email, password, phone });
+      trackLead(); // cadastro concluído (lead)
       await utils.auth.me.invalidate();
       navigate("/home");
     } catch (e) {

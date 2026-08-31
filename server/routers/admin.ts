@@ -18,27 +18,43 @@ export const adminRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+    const preco = Number(process.env.PRECO_DIETA ?? "9.99");
+
     const [totalUsers] = await db.select({ count: count() }).from(users);
-    const [totalPayments] = await db
-      .select({ count: count() })
-      .from(payments)
-      .where(eq(payments.status, "completed"));
+    // Compras concluídas (pagamentos "completed").
+    const [totalPayments] = await db.select({ count: count() }).from(payments).where(eq(payments.status, "completed"));
+    // Assinaturas ativas (clientes com plano pago liberado).
+    const [assinantes] = await db.select({ count: count() }).from(users).where(eq(users.hasPaidPlan, true));
     const [totalDietPlans] = await db.select({ count: count() }).from(dietPlans);
     const [totalWorkoutPlans] = await db.select({ count: count() }).from(workoutPlans);
 
-    // Novos usuários nos últimos 7 dias
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [newUsersWeek] = await db
-      .select({ count: count() })
-      .from(users)
-      .where(sql`${users.createdAt} >= ${sevenDaysAgo}`);
+    const [newUsersWeek] = await db.select({ count: count() }).from(users).where(sql`${users.createdAt} >= ${sevenDaysAgo}`);
+    const [comprasWeek] = await db.select({ count: count() }).from(payments)
+      .where(and(eq(payments.status, "completed"), sql`${payments.createdAt} >= ${sevenDaysAgo}`));
 
+    // Série dos últimos 14 dias: cadastros e compras por dia.
+    const catorzeDias = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const cadastrosDia = await db.select({ dia: sql<string>`DATE(${users.createdAt})`, c: count() })
+      .from(users).where(sql`${users.createdAt} >= ${catorzeDias}`).groupBy(sql`DATE(${users.createdAt})`);
+    const comprasDia = await db.select({ dia: sql<string>`DATE(${payments.createdAt})`, c: count() })
+      .from(payments).where(and(eq(payments.status, "completed"), sql`${payments.createdAt} >= ${catorzeDias}`)).groupBy(sql`DATE(${payments.createdAt})`);
+
+    const compras = totalPayments?.count ?? 0;
+    const totUsers = totalUsers?.count ?? 0;
+    const ativos = assinantes?.count ?? 0;
     return {
-      totalUsers: totalUsers?.count ?? 0,
-      totalPayments: totalPayments?.count ?? 0,
+      totalUsers: totUsers,
+      totalPayments: compras,                 // compras concluídas
+      assinantes: ativos,                     // assinaturas ativas
+      receita: Math.round(compras * preco * 100) / 100,
+      precoUnitario: preco,
+      conversao: totUsers ? Math.round((ativos / totUsers) * 1000) / 10 : 0, // % de conversão
+      newUsersWeek: newUsersWeek?.count ?? 0,
+      comprasWeek: comprasWeek?.count ?? 0,
       totalDietPlans: totalDietPlans?.count ?? 0,
       totalWorkoutPlans: totalWorkoutPlans?.count ?? 0,
-      newUsersWeek: newUsersWeek?.count ?? 0,
+      serie: { cadastros: cadastrosDia, compras: comprasDia },
     };
   }),
 

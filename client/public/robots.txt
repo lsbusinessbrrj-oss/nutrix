@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /perfil
+Disallow: /dietas
+Disallow: /pagamento
+
+Sitemap: https://usenutrix.com.br/sitemap.xml

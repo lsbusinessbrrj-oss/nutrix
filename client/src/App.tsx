@@ -1,7 +1,9 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
+import { trackPageView } from "./lib/tracking";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -76,6 +78,13 @@ function Router() {
 //   to keep consistent foreground/background color across components
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
+// Dispara PageView (Meta Pixel + GA) a cada troca de rota.
+function PageTracker() {
+  const [location] = useLocation();
+  useEffect(() => { trackPageView(location); }, [location]);
+  return null;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -85,6 +94,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
+          <PageTracker />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

@@ -6,7 +6,11 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
+import { initTracking } from "./lib/tracking";
 import "./index.css";
+
+// Carrega Meta Pixel + Google (só se os IDs VITE_* estiverem configurados).
+initTracking();
 
 const queryClient = new QueryClient();
 
