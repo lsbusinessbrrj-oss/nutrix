@@ -3,33 +3,33 @@
 import { Resend } from "resend";
 
 export function assuntoEmail(nome: string) {
-  return `${nome}, sua dieta personalizada NutriX chegou! 🥗`;
+  const primeiro = nome.split(" ")[0] || nome;
+  return `${primeiro}, sua dieta personalizada chegou`;
 }
 
 export function corpoEmail(nome: string): string {
   const primeiro = nome.split(" ")[0] || nome;
   return `
-  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#0f172a">
-    <div style="background:#166534;padding:20px;border-radius:12px 12px 0 0;text-align:center">
-      <span style="color:#fff;font-size:22px;font-weight:800">Nutri<span style="color:#E53935">X</span></span>
-    </div>
-    <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
-      <h2 style="color:#166534;margin:0 0 8px">Sua dieta está pronta, ${primeiro}! 🎉</h2>
-      <p>Em anexo está o seu <strong>plano alimentar personalizado</strong>, com as calorias e a proteína
-      calculadas para o seu objetivo, opções por refeição e substituições.</p>
-      <ul style="color:#475569;font-size:14px;line-height:1.6">
-        <li>Siga as quantidades indicadas em cada refeição.</li>
-        <li>Beba bastante água ao longo do dia.</li>
-        <li>Enjoou de algum item? Use as opções de substituição.</li>
-      </ul>
-      <p style="margin-top:16px">Qualquer dúvida, é só responder este e-mail. Bons resultados! 💪</p>
-      <p style="color:#94a3b8;font-size:12px;margin-top:20px">Equipe NutriX · Saúde que Alimenta. Treino que Transforma.</p>
-    </div>
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1a1a1a;max-width:460px;margin:0 auto">
+    <p style="margin:0 0 14px"><strong style="color:#166534">NutriX</strong></p>
+    <p style="margin:0 0 12px">Oi ${primeiro}, sua dieta está pronta.</p>
+    <p style="margin:0 0 12px">Segue em anexo o seu plano alimentar personalizado, com as calorias e a proteína calculadas para o seu objetivo, as opções por refeição e as substituições.</p>
+    <p style="margin:0 0 12px">Algumas dicas: siga as quantidades de cada refeição, beba bastante água ao longo do dia e, se enjoar de algum item, use as opções de substituição.</p>
+    <p style="margin:0 0 12px">Qualquer dúvida, é só responder este e-mail. Bons resultados!</p>
+    <p style="margin:18px 0 0;color:#555">Abraço,<br>Equipe NutriX</p>
   </div>`;
 }
 
+export function corpoEmailTexto(nome: string): string {
+  const primeiro = nome.split(" ")[0] || nome;
+  return `Oi ${primeiro}, sua dieta está pronta.\n\n` +
+    `Segue em anexo o seu plano alimentar personalizado, com as calorias e a proteína calculadas para o seu objetivo, as opções por refeição e as substituições.\n\n` +
+    `Algumas dicas: siga as quantidades de cada refeição, beba bastante água ao longo do dia e, se enjoar de algum item, use as opções de substituição.\n\n` +
+    `Qualquer dúvida, é só responder este e-mail. Bons resultados!\n\nAbraço,\nEquipe NutriX`;
+}
+
 export function assuntoAssinatura() {
-  return "Assinatura NutriX ativada ✅";
+  return "Sua assinatura NutriX está ativa";
 }
 
 export function corpoAssinatura(nome: string, preco = "9,99"): string {
@@ -80,14 +80,28 @@ export function corpoReset(nome: string | null, link: string): string {
 
 const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-/** Envia um e-mail simples (sem anexo) — usado p/ confirmações. */
-export async function enviarEmailSimples(para: string, assunto: string, html: string): Promise<ResultadoEnvio> {
+// Deriva um texto puro de um HTML simples (fallback quando não é passado).
+function htmlParaTexto(html: string): string {
+  return html
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, "$2: $1")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Envia um e-mail simples (sem anexo) — usado p/ confirmações e marketing.
+ *  Sempre inclui uma versão em texto puro (ajuda a cair na aba Principal). */
+export async function enviarEmailSimples(para: string, assunto: string, html: string, text?: string): Promise<ResultadoEnvio> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) return { ok: true, simulado: true, detalhe: "Resend não configurado — e-mail simulado." };
   try {
     const { Resend } = await import("resend");
-    const { error } = await new Resend(apiKey).emails.send({ from, to: para, subject: assunto, html });
+    const { error } = await new Resend(apiKey).emails.send({
+      from, to: para, subject: assunto, html, text: text ?? htmlParaTexto(html),
+    });
     if (error) return { ok: false, simulado: false, detalhe: JSON.stringify(error) };
     return { ok: true, simulado: false };
   } catch (e) {
@@ -106,7 +120,7 @@ export async function enviarEmail(para: string, nome: string, pdf: Buffer): Prom
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from, to: para, subject: assuntoEmail(nome), html: corpoEmail(nome),
+      from, to: para, subject: assuntoEmail(nome), html: corpoEmail(nome), text: corpoEmailTexto(nome),
       attachments: [{ filename: `dieta-${slug(nome)}.pdf`, content: pdf }],
     });
     if (error) return { ok: false, simulado: false, detalhe: JSON.stringify(error) };

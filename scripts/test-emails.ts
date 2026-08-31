@@ -32,8 +32,8 @@ const itens = [
 console.log(`Enviando 5 e-mails de teste para ${alvo} (APP_URL=${APP_URL})\n`);
 for (const it of itens) {
   const l = await link(it.next);
-  const { assunto, html } = it.mk(nome, l);
-  const r = await enviarEmailSimples(alvo, `[TESTE] ${assunto}`, html);
+  const { assunto, html, text } = it.mk(nome, l);
+  const r = await enviarEmailSimples(alvo, `[TESTE] ${assunto}`, html, text);
   console.log(`  ${r.ok ? (r.simulado ? "SIMULADO" : "ENVIADO ") : "FALHOU  "} ${it.nome} — "${assunto}"${r.ok ? "" : " :: " + r.detalhe}`);
 }
 process.exit(0);

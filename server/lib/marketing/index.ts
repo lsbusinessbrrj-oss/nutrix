@@ -95,7 +95,7 @@ export async function enviarMarketing(opts: { dryRun?: boolean; maxDias?: number
     const tipo = pendentes[0];
 
     const link = await linkMagico(u.id, destino[tipo]);
-    const { assunto, html } = montar(tipo, u.name, link);
+    const { assunto, html, text } = montar(tipo, u.name, link);
 
     if (dryRun) {
       detalhes.push(`[dry] #${u.id} ${u.email} → ${tipo}`);
@@ -103,7 +103,7 @@ export async function enviarMarketing(opts: { dryRun?: boolean; maxDias?: number
       continue;
     }
 
-    const r = await enviarEmailSimples(u.email, assunto, html);
+    const r = await enviarEmailSimples(u.email, assunto, html, text);
     if (r.ok) {
       await conn.insert(marketingEmails).values({ userId: u.id, type: tipo });
       enviados++;
