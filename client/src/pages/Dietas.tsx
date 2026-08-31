@@ -15,8 +15,14 @@ export default function Dietas() {
   const [activeTab, setActiveTab] = useState<TabId>("dieta");
   const [showQuick, setShowQuick] = useState(false);
 
+  const utils = trpc.useUtils();
   const { data: dietPlan } = trpc.diet.getActivePlan.useQuery(undefined, { enabled: isAuthenticated });
   const { data: profileData } = trpc.profile.get.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated });
+  const gerar = trpc.diet.generatePlan.useMutation({
+    onSuccess: async () => { await utils.diet.getActivePlan.invalidate(); toast.success("Sua dieta foi gerada!"); },
+    onError: (e) => toast.error(e.message),
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate("/login");
@@ -105,7 +111,8 @@ export default function Dietas() {
 
         {/* ── Content ── */}
         {activeTab === "dieta" && (
-          <DietaTab meals={meals} totalCals={totalCals} waterMl={waterMl} orientacao={orientacao} hasPlan={!!dietPlan} navigate={navigate} />
+          <DietaTab meals={meals} totalCals={totalCals} waterMl={waterMl} orientacao={orientacao} hasPlan={!!dietPlan}
+            paid={!!(me as any)?.hasPaidPlan} onGerar={() => gerar.mutate()} gerando={gerar.isPending} navigate={navigate} />
         )}
         {activeTab === "treino" && <WorkoutWizard />}
         {activeTab === "progresso" && <ProgressoTab profileData={profileData} />}
@@ -114,9 +121,27 @@ export default function Dietas() {
   );
 }
 
-function DietaTab({ meals, totalCals, waterMl, orientacao, hasPlan, navigate }: any) {
+function DietaTab({ meals, totalCals, waterMl, orientacao, hasPlan, paid, onGerar, gerando, navigate }: any) {
   const [showOrient, setShowOrient] = useState(false);
   if (!hasPlan) {
+    // Já pagou mas o plano ainda não foi gerado → gera na hora (rede de segurança).
+    if (paid) {
+      return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 text-center">
+          <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "#E8F5E9" }}>
+            <span className="text-3xl">🥗</span>
+          </div>
+          <p className="font-bold text-gray-700 mb-1">Vamos gerar sua dieta</p>
+          <p className="text-sm text-gray-500 mb-5">Seu acesso está liberado. Clique para montar seu plano personalizado.</p>
+          <button onClick={onGerar} disabled={gerando}
+            className="px-8 py-3 rounded-xl font-bold text-sm text-white shadow-md disabled:opacity-60"
+            style={{ background: "#1B5E20" }}>
+            {gerando ? "Gerando..." : "Gerar minha dieta agora"}
+          </button>
+          <p className="text-[11px] text-gray-400 mt-3">Se aparecer erro de perfil, toque em "Perfil" e confirme peso, altura, idade e sexo.</p>
+        </div>
+      );
+    }
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 text-center">
         <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "#E8F5E9" }}>

@@ -10,7 +10,7 @@ import { enviarWhatsapp, enviarWhatsappTexto, mensagemAssinatura } from "./whats
 type UserRow = NonNullable<Awaited<ReturnType<typeof db.getUserById>>>;
 
 /** Gera o plano e o PDF para um usuário (valida perfil e carrega as escolhas). */
-async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer }> {
+async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer; plano: any }> {
   if (user.weight == null || user.height == null || user.age == null || !user.sex) {
     throw new Error("Perfil incompleto (peso, altura, idade, sexo).");
   }
@@ -32,7 +32,7 @@ async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer 
     peso: user.weight != null ? Number(user.weight) : null,
     altura: user.height != null ? Number(user.height) : null,
   };
-  return { nome, pdf: await gerarPdfDieta(cliente, plano) };
+  return { nome, pdf: await gerarPdfDieta(cliente, plano), plano };
 }
 
 export interface ResultadoEntrega {
@@ -48,7 +48,16 @@ export interface ResultadoEntrega {
 export async function entregarDieta(userId: number, whatsappProativo = false): Promise<ResultadoEntrega> {
   const user = await db.getUserById(userId);
   if (!user) throw new Error("Usuário não encontrado");
-  const { nome, pdf } = await construirPdf(user);
+  const { nome, pdf, plano } = await construirPdf(user);
+
+  // Salva o plano no banco para aparecer no app (/dietas). Não deve derrubar a
+  // entrega se falhar — o e-mail é o principal.
+  try {
+    const kcal = Number(plano?.totalCalories ?? 0);
+    await db.createDietPlan(user.id, kcal, plano);
+  } catch (e) {
+    console.error("[entregarDieta] falha ao salvar plano:", (e as Error).message);
+  }
 
   const email = user.email
     ? { ...(await enviarEmail(user.email, nome, pdf)), destino: user.email }

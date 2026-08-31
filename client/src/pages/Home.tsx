@@ -230,6 +230,10 @@ export default function Home() {
       toast.error("Preencha seu peso, altura e idade antes de continuar.");
       return;
     }
+    if (!sex) {
+      toast.error("Selecione o sexo (Masculino/Feminino) para o cálculo da dieta.");
+      return;
+    }
     try {
       await saveFormMutation.mutateAsync({
         weight: parseFloat(weight), height: parseFloat(height), age: parseInt(age),
