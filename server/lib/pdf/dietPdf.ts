@@ -233,6 +233,8 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ? h(Image, { src: hdr, style: { width: 595, height: 247, marginTop: -28, marginLeft: -32, marginRight: -32, marginBottom: 6 } })
       : h(View, { style: { height: 8 } }),
 
+    // Distribui dados + objetivo + como-seguir para preencher a página 1 (sem espaço vazio feio).
+    h(View, { style: { flexGrow: 1, justifyContent: "space-around" } },
     h(View, { style: s.header },
       folhaGrande(),
       h(Text, { style: s.headerTit }, "Dados do cliente"),
@@ -270,17 +272,24 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         "Respeite as quantidades indicadas nos alimentos e nas substituições.",
       ].map((t, i) => h(Text, { key: i, style: { fontSize: 8, color: C.texto, marginBottom: 1, lineHeight: 1.3 } }, "•  " + t)),
     ),
+    ), // fecha o container flexGrow da página 1
 
-    // Conteúdo completo fluindo continuamente (sem quebras fixas nem espaços
-    // vazios); o título não fica órfão no fim da página.
+    rodape(cliente.nome, dataAval),
+  );
+
+  // Página 2 em diante: as refeições e opções (fluem e paginam sozinhas).
+  const refeicoes = h(Page, { size: "A4", style: s.page, key: "refeicoes" },
+    fundo(),
+    h(View, { style: { marginBottom: 6, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
+      h(Text, { style: { fontSize: 13, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Suas refeições — escolha 1 opção por refeição")),
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, minPresenceAhead: 46 },
-        h(View, { style: s.mealTitle, minPresenceAhead: 40 },
+      h(View, { key: mi, minPresenceAhead: 60, style: { marginBottom: 4 } },
+        h(View, { style: s.mealTitle, minPresenceAhead: 50 },
           iconeRefeicao(mi),
           h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, `${meal.time} · ${meal.name}`),
         ),
         ...meal.options.map((opt, oi) =>
-          h(View, { key: oi, minPresenceAhead: 30 },
+          h(View, { key: oi, minPresenceAhead: 34 },
             h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
@@ -291,7 +300,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     // Quadro resumo das opções (regras 14/15).
     resumoTabela(plano),
 
-    // Orientações fluem logo após as refeições (sem página vazia).
+    // Orientação nutricional.
     h(View, { minPresenceAhead: 80 },
       h(View, { style: { marginTop: 12, marginBottom: 4, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
         h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Orientação nutricional")),
@@ -302,7 +311,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     rodape(cliente.nome, dataAval),
   );
 
-  return h(Document, { title: `Dieta de ${cliente.nome}`, author: "NutriX" }, capa);
+  return h(Document, { title: `Dieta de ${cliente.nome}`, author: "NutriX" }, capa, refeicoes);
 }
 
 export async function gerarPdfDieta(cliente: ClientePdf, plano: PlanData): Promise<Buffer> {
