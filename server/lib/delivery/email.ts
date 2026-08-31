@@ -52,6 +52,32 @@ export function corpoAssinatura(nome: string, preco = "9,99"): string {
   </div>`;
 }
 
+export function assuntoReset() {
+  return "Redefinição de senha · NutriX 🔒";
+}
+
+export function corpoReset(nome: string | null, link: string): string {
+  const primeiro = (nome ?? "").split(" ")[0] || "";
+  const ola = primeiro ? `Olá, ${primeiro}!` : "Olá!";
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#0f172a">
+    <div style="background:#166534;padding:20px;border-radius:12px 12px 0 0;text-align:center">
+      <span style="color:#fff;font-size:22px;font-weight:800">Nutri<span style="color:#E53935">X</span></span>
+    </div>
+    <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
+      <h2 style="color:#166534;margin:0 0 8px">Redefinir sua senha</h2>
+      <p>${ola} Recebemos um pedido para redefinir a senha da sua conta NutriX.
+      Clique no botão abaixo para criar uma nova senha:</p>
+      <p style="text-align:center;margin:24px 0">
+        <a href="${link}" style="background:#166534;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px;display:inline-block">Criar nova senha</a>
+      </p>
+      <p style="color:#475569;font-size:13px">Ou copie e cole este link no navegador:<br>
+        <a href="${link}" style="color:#166534;word-break:break-all">${link}</a></p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:20px">O link expira em 1 hora. Se você não pediu a troca de senha, pode ignorar este e-mail — sua senha atual continua valendo.<br><br>Equipe NutriX · Saúde que Alimenta. Treino que Transforma.</p>
+    </div>
+  </div>`;
+}
+
 const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /** Envia um e-mail simples (sem anexo) — usado p/ confirmações. */

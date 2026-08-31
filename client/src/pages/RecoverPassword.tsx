@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Mail, ArrowLeft } from "lucide-react";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export default function RecoverPassword() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const solicitar = trpc.auth.solicitarResetSenha.useMutation();
+
+  const enviar = async () => {
+    if (!email) { toast.error("Digite seu email."); return; }
+    try {
+      await solicitar.mutateAsync({ email: email.trim() });
+      setSent(true);
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Não foi possível enviar o e-mail.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#F3F4F6" }}>
@@ -20,19 +32,22 @@ export default function RecoverPassword() {
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: "#E8F5E9" }}>
               <Mail size={24} style={{ color: "#43A047" }} />
             </div>
-            <p className="text-sm text-gray-700 font-medium">Email enviado!</p>
-            <p className="text-xs text-gray-500 mt-1">Verifique sua caixa de entrada.</p>
+            <p className="text-sm text-gray-700 font-medium">E-mail enviado!</p>
+            <p className="text-xs text-gray-500 mt-1">Se existir uma conta com esse e-mail, você receberá um link para criar uma nova senha. Verifique também o spam.</p>
           </div>
         ) : (
           <div className="space-y-3">
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") enviar(); }}
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
             <button
-              onClick={() => { if (!email) { toast.error("Digite seu email."); return; } setSent(true); toast.success("Email de recuperação enviado!"); }}
-              className="w-full rounded-xl py-2.5 text-sm font-semibold text-white"
+              onClick={enviar}
+              disabled={solicitar.isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60"
               style={{ background: "#1B5E20" }}
             >
-              Enviar link de recuperação
+              {solicitar.isPending && <Loader2 size={16} className="animate-spin" />}
+              {solicitar.isPending ? "Enviando..." : "Enviar link de recuperação"}
             </button>
           </div>
         )}

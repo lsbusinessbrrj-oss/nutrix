@@ -9,7 +9,11 @@ import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { conferirSenha, hashSenha } from "../auth/password";
 import { assinarSessao } from "../auth/session";
+import { assinarTokenReset, lerTokenReset, impressaoSenha } from "../auth/reset";
+import { assuntoReset, corpoReset, enviarEmailSimples } from "../lib/delivery/email";
 import { protectedProcedure } from "../_core/trpc";
+
+const APP_URL = (process.env.APP_URL || "https://usenutrix.com.br").replace(/\/$/, "");
 
 // Nunca devolver o hash da senha para o cliente.
 function semSenha(user: User | null) {
@@ -91,6 +95,62 @@ export const authRouter = router({
       if (input.avatarUrl !== undefined) data.avatarUrl = input.avatarUrl || null;
       if (Object.keys(data).length) await db.updateUserProfile(ctx.user.id, data);
       return { ok: true };
+    }),
+
+  // ── Esqueci a senha: envia link de redefinição por e-mail ────────────────
+  // Sempre responde ok (não revela se o e-mail existe).
+  solicitarResetSenha: publicProcedure
+    .input(z.object({ email: z.string().email("E-mail inválido") }))
+    .mutation(async ({ input }) => {
+      const email = input.email.toLowerCase().trim();
+      const user = await db.getUserByEmail(email);
+      if (user && user.email) {
+        const token = await assinarTokenReset(user.id, user.passwordHash);
+        const link = `${APP_URL}/redefinir-senha?token=${encodeURIComponent(token)}`;
+        await enviarEmailSimples(user.email, assuntoReset(), corpoReset(user.name, link));
+      }
+      return { ok: true } as const;
+    }),
+
+  // ── Redefinir a senha usando o token do e-mail ───────────────────────────
+  redefinirSenha: publicProcedure
+    .input(z.object({
+      token: z.string().min(10),
+      novaSenha: z.string().min(6, "A senha precisa ter ao menos 6 caracteres"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const dados = await lerTokenReset(input.token);
+      if (!dados) throw new TRPCError({ code: "BAD_REQUEST", message: "Link inválido ou expirado. Peça um novo." });
+      const user = await db.getUserById(dados.uid);
+      // Uso único: se a impressão não bate, o link já foi usado (senha mudou).
+      if (!user || impressaoSenha(user.passwordHash) !== dados.ph) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Link inválido ou já utilizado. Peça um novo." });
+      }
+      const passwordHash = await hashSenha(input.novaSenha);
+      await db.updateUserProfile(user.id, { passwordHash });
+      // Já autentica o usuário após redefinir.
+      await iniciarSessao(ctx, user.id);
+      return { ok: true, user: semSenha({ ...user, passwordHash }) } as const;
+    }),
+
+  // ── Alterar a senha estando logado (cliente ou admin) ────────────────────
+  alterarSenha: protectedProcedure
+    .input(z.object({
+      senhaAtual: z.string().optional(),
+      novaSenha: z.string().min(6, "A senha precisa ter ao menos 6 caracteres"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND" });
+      // Contas com senha própria precisam confirmar a senha atual.
+      // Contas só-Google (sem passwordHash) podem definir a primeira senha sem isso.
+      if (user.passwordHash) {
+        const ok = input.senhaAtual ? await conferirSenha(input.senhaAtual, user.passwordHash) : false;
+        if (!ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha atual incorreta." });
+      }
+      const passwordHash = await hashSenha(input.novaSenha);
+      await db.updateUserProfile(user.id, { passwordHash });
+      return { ok: true } as const;
     }),
 
   // Cancela apenas a assinatura (mantém a conta).

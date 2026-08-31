@@ -255,7 +255,50 @@ function PerfilTab({ user, p, streak, navigate }: any) {
         </a>
       </div>
 
+      <AlterarSenhaSection />
       <ContaSection navigate={navigate} />
+    </div>
+  );
+}
+
+function AlterarSenhaSection() {
+  const [aberto, setAberto] = useState(false);
+  const [atual, setAtual] = useState("");
+  const [nova, setNova] = useState("");
+  const [confirma, setConfirma] = useState("");
+  const alterar = trpc.auth.alterarSenha.useMutation();
+
+  async function salvar() {
+    if (nova.length < 6) { toast.error("A nova senha precisa ter ao menos 6 caracteres."); return; }
+    if (nova !== confirma) { toast.error("As senhas não conferem."); return; }
+    try {
+      await alterar.mutateAsync({ senhaAtual: atual || undefined, novaSenha: nova });
+      toast.success("Senha alterada com sucesso!");
+      setAtual(""); setNova(""); setConfirma(""); setAberto(false);
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-4">
+      <button onClick={() => setAberto(a => !a)} className="w-full flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">Segurança · Senha</span>
+        <span className="text-xs text-[#16A34A] font-semibold">{aberto ? "Fechar" : "Alterar senha"}</span>
+      </button>
+      {aberto && (
+        <div className="space-y-3 mt-4">
+          <input type="password" placeholder="Senha atual" value={atual} onChange={e => setAtual(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
+          <input type="password" placeholder="Nova senha" value={nova} onChange={e => setNova(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
+          <input type="password" placeholder="Confirmar nova senha" value={confirma} onChange={e => setConfirma(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
+          <button onClick={salvar} disabled={alterar.isPending}
+            className="w-full py-2.5 rounded-xl font-semibold text-white text-sm disabled:opacity-60" style={{ background: "#1B5E20" }}>
+            {alterar.isPending ? "Salvando..." : "Salvar nova senha"}
+          </button>
+          <p className="text-[11px] text-gray-400">Se você entra com o Google e nunca definiu uma senha, deixe "Senha atual" em branco para criar a primeira.</p>
+        </div>
+      )}
     </div>
   );
 }

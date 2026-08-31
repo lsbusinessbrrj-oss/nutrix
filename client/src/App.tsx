@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RecoverPassword from "./pages/RecoverPassword";
+import RedefinirSenha from "./pages/RedefinirSenha";
 import Termos from "./pages/Termos";
 import Dietas from "./pages/Dietas";
 import Pagamento from "./pages/Pagamento";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/recuperar-senha" component={RecoverPassword} />
+      <Route path="/redefinir-senha" component={RedefinirSenha} />
       <Route path="/termos" component={Termos} />
 
       {/* Rotas protegidas — apenas usuários autenticados */}
