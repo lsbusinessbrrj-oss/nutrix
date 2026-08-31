@@ -7,6 +7,7 @@ import { trackLead } from "@/lib/tracking";
 
 export default function Signup() {
   const [, navigate] = useLocation();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +22,10 @@ export default function Signup() {
       toast.error("Aceite os termos para continuar.");
       return;
     }
+    if (!name.trim()) {
+      toast.error("Informe seu nome.");
+      return;
+    }
     if (!email || password.length < 6) {
       toast.error("Informe e-mail e senha (mínimo 6 caracteres).");
       return;
@@ -30,7 +35,7 @@ export default function Signup() {
       return;
     }
     try {
-      await signupMut.mutateAsync({ email, password, phone });
+      await signupMut.mutateAsync({ email, password, phone, name: name.trim() });
       trackLead(); // cadastro concluído (lead)
       await utils.auth.me.invalidate();
       navigate("/home");
@@ -63,6 +68,8 @@ export default function Signup() {
         </div>
 
         <div className="space-y-3">
+          <input type="text" placeholder="Nome completo" value={name} onChange={e => setName(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#43A047]" />
           <input type="tel" placeholder="WhatsApp (com DDD)" value={phone} onChange={e => setPhone(e.target.value)}
