@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { registerStripeWebhook } from "../stripe-webhook";
 import { registerWhatsappWebhook } from "../whatsapp-webhook";
 import { registerMpWebhook } from "../mp-webhook";
+import { registerGoogleAuth } from "../google-auth";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerWhatsappWebhook(app);
   registerMpWebhook(app);
+  registerGoogleAuth(app);
   // Health check leve (para monitor de uptime manter o serviço acordado no Render).
   app.get("/health", (_req, res) => res.json({ ok: true, service: "nutrix" }));
   // tRPC API
