@@ -8,6 +8,14 @@ const GOAL_LABELS: Record<string, string> = {
   weight_loss_muscle: "Emagrecer + Massa", definition_muscle: "Definição + Massa",
 };
 
+// Etapa do funil a partir dos dados que já vêm na listagem:
+// Pagou (hasPaidPlan) > Montou a dieta (preencheu o quiz: peso/altura/objetivo) > Só cadastrou.
+function estagio(u: any): { label: string; cls: string } {
+  if (u.hasPaidPlan) return { label: "Pagou", cls: "bg-[#E8F5E9] text-[#1B5E20]" };
+  if (u.weight != null || u.height != null || u.goal) return { label: "Montou a dieta", cls: "bg-amber-100 text-amber-700" };
+  return { label: "Só cadastrou", cls: "bg-gray-100 text-gray-500" };
+}
+
 export default function AdminUsuarios() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -46,6 +54,11 @@ export default function AdminUsuarios() {
         <div>
           <h1 className="font-montserrat text-2xl font-black text-gray-800">Usuários</h1>
           <p className="text-sm text-gray-500 mt-1">{data?.total ?? 0} usuários cadastrados</p>
+          <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300" /> Só cadastrou</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Montou a dieta (não pagou)</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#43A047]" /> Pagou</span>
+          </div>
         </div>
         <div className="relative">
           <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
@@ -63,7 +76,7 @@ export default function AdminUsuarios() {
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Usuário</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Plano</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Cadastro</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -101,9 +114,13 @@ export default function AdminUsuarios() {
                     </span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${u.hasPaidPlan ? "bg-[#E8F5E9] text-[#1B5E20]" : "bg-gray-100 text-gray-500"}`}>
-                      {u.hasPaidPlan ? "Pago" : "Gratuito"}
-                    </span>
+                    {u.role === "admin" ? (
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">—</span>
+                    ) : (
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${estagio(u).cls}`}>
+                        {estagio(u).label}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "—"}
@@ -147,6 +164,11 @@ export default function AdminUsuarios() {
                 </div>
               </div>
               <div className="space-y-2 text-xs text-gray-600 mb-4">
+                {(detail as any).user.role !== "admin" && (
+                  <div className="flex justify-between items-center"><span className="text-gray-400">Etapa</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${estagio((detail as any).user).cls}`}>{estagio((detail as any).user).label}</span>
+                  </div>
+                )}
                 <div className="flex justify-between"><span className="text-gray-400">Objetivo</span><span>{GOAL_LABELS[(detail as any).user.goal ?? ""] ?? "—"}</span></div>
                 <div className="flex justify-between"><span className="text-gray-400">Peso</span><span>{(detail as any).user.weight ? `${(detail as any).user.weight} kg` : "—"}</span></div>
                 <div className="flex justify-between"><span className="text-gray-400">Altura</span><span>{(detail as any).user.height ? `${(detail as any).user.height} cm` : "—"}</span></div>
