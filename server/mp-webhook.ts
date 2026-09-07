@@ -23,7 +23,7 @@ function assinaturaValida(req: express.Request, dataId: string): boolean {
   try { return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(v1)); } catch { return false; }
 }
 import { entregarDieta, confirmarAssinatura } from "./lib/delivery";
-import { avisoPagamento, avisoErro } from "./lib/notify";
+import { avisoPagamento, avisoErro, notificarAdmin } from "./lib/notify";
 
 // Localiza o usuário pelo external_reference (id) ou, na falta, pelo e-mail.
 // Retorna { id, novo } — novo=true só na 1ª liberação (evita aviso duplicado
@@ -43,6 +43,18 @@ async function liberarEEntregar(externalRef?: string, email?: string): Promise<{
   return { id: user.id, novo };
 }
 
+// Estorno / chargeback / cancelamento do pagamento: o dinheiro voltou →
+// remove o acesso pago (a pessoa não pode continuar usando de graça).
+async function revogarAcesso(externalRef?: string, email?: string): Promise<{ id: number; email: string | null } | null> {
+  let user = externalRef && /^\d+$/.test(externalRef) ? await db.getUserById(Number(externalRef)) : null;
+  if (!user && email) user = await db.getUserByEmail(email);
+  if (!user || !user.hasPaidPlan) return null;
+  await db.updateUserProfile(user.id, { hasPaidPlan: false });
+  return { id: user.id, email: user.email ?? null };
+}
+
+const STATUS_ESTORNO = new Set(["refunded", "charged_back", "cancelled"]);
+
 export function registerMpWebhook(app: express.Application) {
   const handler = async (req: express.Request, res: express.Response) => {
     try {
@@ -61,6 +73,11 @@ export function registerMpWebhook(app: express.Application) {
         if (p.status === "approved") {
           const r = await liberarEEntregar(p.externalReference, p.email);
           if (r?.novo) avisoPagamento("pagamento", p.email ?? null, "9,99");
+        } else if (STATUS_ESTORNO.has(p.status)) {
+          const r = await revogarAcesso(p.externalReference, p.email);
+          if (r) notificarAdmin("Estorno · acesso removido ↩️", "Um pagamento foi estornado", [
+            `Cliente: ${r.email ?? "—"}`, `Status no MP: ${p.status}`,
+          ]);
         }
       } else if (tipo.includes("preapproval") || tipo.includes("subscription")) {
         const a = await detalheAssinatura(id);
