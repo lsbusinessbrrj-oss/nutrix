@@ -289,7 +289,7 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         ),
         ...meal.options.map((opt, oi) =>
           h(View, { key: oi, minPresenceAhead: 34 },
-            h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
+            h(Text, { style: s.optTitle }, opt.livre ? `Opção ${oi + 1} — Salada à vontade` : `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
         ),

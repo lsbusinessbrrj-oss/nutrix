@@ -36,7 +36,14 @@ describe("generatePlan — templates da referência", () => {
   it("tem as 5 refeições (com lanche da manhã)", () => {
     const plano = gerarPlano(homem87);
     expect(plano.meals.map((m) => m.name)).toEqual(["Café da manhã", "Lanche da manhã", "Almoço", "Café da Tarde", "Jantar"]);
-    expect(plano.meals.find((m) => m.name === "Jantar")!.options).toHaveLength(3);
+    // Jantar (e almoço) têm 4 opções: 3 que fecham a conta + salada à vontade.
+    const jantar = plano.meals.find((m) => m.name === "Jantar")!;
+    expect(jantar.options).toHaveLength(4);
+    expect(jantar.options.filter((o) => !(o as any).livre)).toHaveLength(3);
+    expect((jantar.options[3] as any).livre).toBe(true);
+    expect(jantar.options[3].foods[0].name).toMatch(/salada/i);
+    // Café da manhã (refeição sem salada extra) continua com 3.
+    expect(plano.meals.find((m) => m.name === "Café da manhã")!.options).toHaveLength(3);
   });
 
   it("Café da manhã Op1 = ovo + pão + requeijão + banana + aveia + café", () => {
