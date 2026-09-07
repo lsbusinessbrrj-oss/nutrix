@@ -83,15 +83,13 @@ describe("generatePlan — templates da referência", () => {
     expect(gerarPlano({ ...homem87, peso: 87 }).waterMl).toBe(3050);
   });
 
-  it("cada escolha do cliente vira UMA opção (fiel ao quiz)", () => {
+  it("as escolhas do cliente viram UM prato só na Opção 1 (fiel ao quiz)", () => {
     const plano = gerarPlano(homem87, null, { cafe_manha: ["cm_pao_ovo", "cm_banana"] });
     const cafe = plano.meals[0];
-    expect(cafe.options).toHaveLength(3); // 2 escolhas do cliente + 1 completa/referência
+    expect(cafe.options).toHaveLength(3); // Opção 1 = prato do cliente + 2 da referência
     const op1 = cafe.options[0].foods.map((f) => f.name);
-    const op2 = cafe.options[1].foods.map((f) => f.name);
     expect(op1).toContain("Ovo");           // 1ª escolha (Pão + Ovo)
-    expect(op1).not.toContain("Banana prata");
-    expect(op2).toContain("Banana prata");  // 2ª escolha vira a 2ª opção
+    expect(op1).toContain("Banana prata");  // 2ª escolha entra no MESMO prato
     // substituições presentes em cada item
     expect(cafe.options[0].foods[0].substituicoes.length).toBeGreaterThan(0);
   });

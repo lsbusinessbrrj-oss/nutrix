@@ -26,7 +26,11 @@ export const dietRouter = router({
       healthConditions: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await db.updateUserProfile(ctx.user.id, input);
+      // Normaliza altura para cm: se digitou em metros (ex: 1,55), converte p/ 155.
+      const dados = input.height != null && input.height < 3
+        ? { ...input, height: Math.round(input.height * 100) }
+        : input;
+      await db.updateUserProfile(ctx.user.id, dados);
       return { success: true };
     }),
 

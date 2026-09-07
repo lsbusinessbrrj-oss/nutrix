@@ -225,16 +225,17 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
     const leve = ref.key === "cafe_manha" || ref.key === "lanche_tarde";
     const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo, alvoProt));
 
-    // CADA escolha do cliente vira UMA opção (fiel ao que ele marcou no quiz).
-    // Se escolheu 3, as 3 opções são dele; se escolheu menos, completa com a
-    // referência (variedade). Regra 2: exatamente 3 opções.
+    // OPÇÃO 1 = o PRATO do cliente: TODOS os alimentos que ele marcou nesta
+    // refeição, montados juntos (fiel ao quiz). Só completa se faltar um macro
+    // inteiro (ex.: escolheu só carboidrato → adiciona uma proteína).
+    // As Opções 2 e 3 = alternativas da referência (variedade).
     const ids = selecoes?.[ref.key] ?? [];
-    const clientOptions: Option[] = ids
-      .map((id, k) => {
-        const foods = alimentosDoId(id).filter((a) => passaRestricoes(a, restr));
-        return foods.length ? montarOpcaoCliente(foods, alvo, alvoProt, leve, restr, mi + k) : null;
-      })
-      .filter((o): o is Option => !!o);
+    const escolhidos = ids
+      .flatMap((id) => alimentosDoId(id))
+      .filter((a) => passaRestricoes(a, restr));
+    const clientOptions: Option[] = escolhidos.length
+      ? [montarOpcaoCliente(escolhidos, alvo, alvoProt, leve, restr, mi)]
+      : [];
 
     const options: Option[] = [...clientOptions, ...refOptions];
     // Regra 2: EXATAMENTE 3 opções. Completa com opções da base se faltar.

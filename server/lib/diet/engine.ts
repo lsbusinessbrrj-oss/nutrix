@@ -62,8 +62,13 @@ const AJUSTE: Record<Objetivo, number> = {
 const PROTEINA_KG_MEDIA = 1.8;
 const GORDURA_PCT_KCAL = 0.3;
 
+// Normaliza altura para cm: se o cliente digitou em metros (ex: 1,55), converte.
+export function alturaEmCm(altura: number): number {
+  return altura > 0 && altura < 3 ? Math.round(altura * 100) : altura;
+}
+
 export function calcularTMB(sexo: Sexo, peso: number, altura: number, idade: number): number {
-  const base = 10 * peso + 6.25 * altura - 5 * idade;
+  const base = 10 * peso + 6.25 * alturaEmCm(altura) - 5 * idade;
   return sexo === "male" ? base + 5 : base - 161;
 }
 
