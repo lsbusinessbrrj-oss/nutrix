@@ -125,9 +125,9 @@ function FoodGrid({
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-base font-bold text-gray-900">{title} {titleEmoji}</h3>
-        <span className="text-sm text-gray-400">{selected.length}/3</span>
+        <span className={`text-sm font-semibold ${selected.length === 3 ? "text-[#43A047]" : "text-gray-400"}`}>{selected.length}/3</span>
       </div>
-      <p className="text-xs text-gray-400 mb-4">Selecione os alimentos.</p>
+      <p className="text-xs text-gray-400 mb-4">Escolha 3 alimentos.</p>
       <div className="grid grid-cols-3 gap-2">
         {foods.map((food) => {
           const sel = selected.includes(food.id);
@@ -216,9 +216,9 @@ export default function Home() {
   useEffect(() => { trackViewContent(); }, []);
 
   const toggleFood = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
-    setList((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 3 ? [...prev, id] : prev
-    );
+    if (list.includes(id)) { setList(list.filter((x) => x !== id)); return; }
+    if (list.length >= 3) { toast.info("Máximo de 3 por refeição. Desmarque um para trocar."); return; }
+    setList([...list, id]);
   };
 
   const toggleHealth = (id: string) =>
@@ -232,6 +232,17 @@ export default function Home() {
     }
     if (!sex) {
       toast.error("Selecione o sexo (Masculino/Feminino) para o cálculo da dieta.");
+      return;
+    }
+    // Cada refeição precisa de exatamente 3 alimentos (o lanche da manhã só se não for pulado).
+    const faltando: string[] = [];
+    if (cafeManha.length !== 3) faltando.push("Café da manhã");
+    if (!skipLanche && lancheManha.length !== 3) faltando.push("Lanche da manhã");
+    if (almoco.length !== 3) faltando.push("Almoço");
+    if (lancheTarde.length !== 3) faltando.push("Café da tarde");
+    if (janta.length !== 3) faltando.push("Jantar");
+    if (faltando.length) {
+      toast.error(`Escolha 3 alimentos em: ${faltando.join(", ")}.`);
       return;
     }
     try {
@@ -411,9 +422,9 @@ export default function Home() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-base font-bold text-gray-900">Lanche da Manhã 🍎</h3>
-            <span className="text-sm text-gray-400">{skipLanche ? "—" : `${lancheManha.length}/3`}</span>
+            <span className={`text-sm font-semibold ${!skipLanche && lancheManha.length === 3 ? "text-[#43A047]" : "text-gray-400"}`}>{skipLanche ? "—" : `${lancheManha.length}/3`}</span>
           </div>
-          <p className="text-xs text-gray-400 mb-4">Selecione os alimentos.</p>
+          <p className="text-xs text-gray-400 mb-4">Escolha 3 alimentos.</p>
           {!skipLanche && (
             <div className="grid grid-cols-3 gap-2 mb-4">
               {LANCHE_MANHA.map((food) => {
