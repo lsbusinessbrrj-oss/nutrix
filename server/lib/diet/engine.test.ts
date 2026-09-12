@@ -104,13 +104,27 @@ describe("generatePlan — templates da referência", () => {
     expect(cafe.options[0].foods[0].substituicoes.length).toBeGreaterThan(0);
   });
 
-  it("almoço só com fruta escolhida ainda traz proteína + carbo", () => {
-    const plano = gerarPlano(homem87, null, { almoco: ["al_salada_alface"] });
+  it("quando o cliente escolhe só um carboidrato, a opção ainda traz proteína + carbo", () => {
+    const plano = gerarPlano(homem87, null, { almoco: ["carb_arroz"] });
     const cats = plano.meals.find((m) => m.name === "Almoço")!.options[0].foods
       .map((f) => alimentoCat(f.name))
       .filter(Boolean);
     expect(cats).toContain("proteina");
     expect(cats).toContain("carboidrato");
+  });
+
+  it("com várias escolhas por categoria, monta 3 combinações diferentes e equivalentes", () => {
+    const plano = gerarPlano(homem87, null, {
+      almoco: ["carb_arroz", "carb_macarrao", "carb_batata_doce", "prot_frango", "prot_carne", "prot_peixe", "leg_feijao_preto", "leg_lentilha"],
+    });
+    const almoco = plano.meals.find((m) => m.name === "Almoço")!;
+    const assinaturas = almoco.options.map((o) => o.foods.map((f) => f.name).sort().join("|"));
+    expect(new Set(assinaturas).size).toBe(3); // 3 combinações distintas
+    for (const o of almoco.options) {
+      // cada opção: no máximo 1 carboidrato principal
+      const carbs = o.foods.filter((f) => alimentoCat(f.name) === "carboidrato" && !/feij|lentilha|grão|grao|ervilha/i.test(f.name));
+      expect(carbs.length).toBeLessThanOrEqual(1);
+    }
   });
 });
 

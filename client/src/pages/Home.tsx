@@ -7,98 +7,71 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Check, Lock, ChevronDown, Instagram } from "lucide-react";
 
-// ─── Alimentos por refeição ───────────────────────────────────────────────────
-const CAFE_MANHA = [
-  { id: "cm_pao_frango",         label: "Pão + Frango",             emoji: "🥖" },
-  { id: "cm_pao_ovo",            label: "Pão + Ovo",                emoji: "🍳" },
-  { id: "cm_pao_queijo",         label: "Pão + Queijo",             emoji: "🧀" },
-  { id: "cm_pao_presunto",       label: "Pão + Presunto e Queijo",  emoji: "🥪" },
-  { id: "cm_tapioca_queijo",     label: "Tapioca de Queijo",        emoji: "🫓" },
-  { id: "cm_tapioca_frango",     label: "Tapioca de Frango",        emoji: "🫓" },
-  { id: "cm_cuscuz_ovo",         label: "Cuscuz + Ovo",             emoji: "🌽" },
-  { id: "cm_pao_queijo_minas",   label: "Pão de Queijo",            emoji: "🧀" },
-  { id: "cm_omelete",            label: "Omelete",                  emoji: "🍳" },
-  { id: "cm_maca",               label: "Maçã",                     emoji: "🍎" },
-  { id: "cm_banana",             label: "Banana",                   emoji: "🍌" },
-  { id: "cm_mamao",              label: "Mamão",                    emoji: "🍈" },
-  { id: "cm_cafe_leite",         label: "Café + Leite Desnatado",   emoji: "☕" },
-  { id: "cm_cafe",               label: "Café",                     emoji: "☕" },
-  { id: "cm_iogurte",            label: "Iogurte",                  emoji: "🥛" },
-];
+// ─── Alimentos por CATEGORIA (Carboidrato / Proteína / Complemento) ─────────────
+type Item = { id: string; label: string; emoji: string };
 
-const ALMOCO = [
-  { id: "al_arroz",              label: "Arroz",                    emoji: "🍚" },
-  { id: "al_feijao_preto",       label: "Feijão Preto",             emoji: "🫘" },
-  { id: "al_cuscuz",             label: "Cuscuz",                   emoji: "🌽" },
-  { id: "al_macarrao",           label: "Macarrão",                 emoji: "🍝" },
-  { id: "al_batata_doce",        label: "Batata Doce",              emoji: "🍠" },
-  { id: "al_mandioca",           label: "Mandioca",                 emoji: "🥔" },
-  { id: "al_inhame",             label: "Inhame",                   emoji: "🥔" },
-  { id: "al_batata_inglesa",     label: "Batata Inglesa",           emoji: "🥔" },
-  { id: "al_abobora",            label: "Abóbora",                  emoji: "🎃" },
-  { id: "al_frango_grelhado",    label: "Frango Grelhado",          emoji: "🍗" },
-  { id: "al_carne_assada",       label: "Carne Assada",             emoji: "🥩" },
-  { id: "al_carne_grelhada",     label: "Carne Grelhada",           emoji: "🥩" },
-  { id: "al_carne_porco",        label: "Carne de Porco Lombo",     emoji: "🥩" },
-  { id: "al_patinho_moido",      label: "Patinho Moído",            emoji: "🥩" },
-  { id: "al_peixe",              label: "Peixe",                    emoji: "🐟" },
-  { id: "al_salada_alface_tomate", label: "Salada de Alface e Tomate", emoji: "🍅" },
-  { id: "al_salada_alface",      label: "Salada de Alface",         emoji: "🥗" },
-  { id: "al_salada_legumes",     label: "Salada de Legumes",        emoji: "🥗" },
+// Leves — café da manhã e café da tarde
+const CARB_LEVE: Item[] = [
+  { id: "carb_pao", label: "Pão de forma", emoji: "🍞" },
+  { id: "carb_pao_frances", label: "Pão francês", emoji: "🥖" },
+  { id: "carb_tapioca", label: "Tapioca", emoji: "🫓" },
+  { id: "carb_cuscuz", label: "Cuscuz", emoji: "🌽" },
+  { id: "carb_pao_queijo", label: "Pão de queijo", emoji: "🧀" },
+  { id: "carb_aveia", label: "Aveia", emoji: "🥣" },
+  { id: "carb_biscoito", label: "Biscoito água e sal", emoji: "🍪" },
 ];
-
-const LANCHE_TARDE = [
-  { id: "lt_pao_frango",         label: "Pão + Frango",             emoji: "🥖" },
-  { id: "lt_pao_ovo",            label: "Pão + Ovo",                emoji: "🍳" },
-  { id: "lt_pao_queijo",         label: "Pão + Queijo",             emoji: "🧀" },
-  { id: "lt_pao_presunto",       label: "Pão + Presunto e Queijo",  emoji: "🥪" },
-  { id: "lt_tapioca_queijo",     label: "Tapioca de Queijo",        emoji: "🫓" },
-  { id: "lt_tapioca_frango",     label: "Tapioca de Frango",        emoji: "🫓" },
-  { id: "lt_cuscuz_ovo",         label: "Cuscuz + Ovo",             emoji: "🌽" },
-  { id: "lt_pao_queijo_minas",   label: "Pão de Queijo",            emoji: "🧀" },
-  { id: "lt_omelete",            label: "Omelete",                  emoji: "🍳" },
-  { id: "lt_maca",               label: "Maçã",                     emoji: "🍎" },
-  { id: "lt_banana",             label: "Banana",                   emoji: "🍌" },
-  { id: "lt_mamao",              label: "Mamão",                    emoji: "🍈" },
-  { id: "lt_cafe_leite",         label: "Café + Leite Desnatado",   emoji: "☕" },
-  { id: "lt_cafe",               label: "Café",                     emoji: "☕" },
-  { id: "lt_iogurte",            label: "Iogurte",                  emoji: "🥛" },
+const PROT_LEVE: Item[] = [
+  { id: "prot_ovo", label: "Ovo", emoji: "🍳" },
+  { id: "prot_queijo", label: "Queijo", emoji: "🧀" },
+  { id: "prot_minas", label: "Queijo minas", emoji: "🧀" },
+  { id: "prot_presunto", label: "Presunto magro", emoji: "🥪" },
+  { id: "prot_frango_desf", label: "Frango desfiado", emoji: "🍗" },
+  { id: "prot_iogurte", label: "Iogurte", emoji: "🥛" },
+  { id: "prot_whey", label: "Whey", emoji: "🥛" },
+  { id: "prot_ricota", label: "Ricota", emoji: "🧀" },
 ];
-
-const JANTA = [
-  { id: "jt_arroz",              label: "Arroz",                    emoji: "🍚" },
-  { id: "jt_feijao_preto",       label: "Feijão Preto",             emoji: "🫘" },
-  { id: "jt_cuscuz",             label: "Cuscuz",                   emoji: "🌽" },
-  { id: "jt_macarrao",           label: "Macarrão",                 emoji: "🍝" },
-  { id: "jt_batata_doce",        label: "Batata Doce",              emoji: "🍠" },
-  { id: "jt_mandioca",           label: "Mandioca",                 emoji: "🥔" },
-  { id: "jt_inhame",             label: "Inhame",                   emoji: "🥔" },
-  { id: "jt_batata_inglesa",     label: "Batata Inglesa",           emoji: "🥔" },
-  { id: "jt_abobora",            label: "Abóbora",                  emoji: "🎃" },
-  { id: "jt_frango_grelhado",    label: "Frango Grelhado",          emoji: "🍗" },
-  { id: "jt_carne_assada",       label: "Carne Assada",             emoji: "🥩" },
-  { id: "jt_carne_grelhada",     label: "Carne Grelhada",           emoji: "🥩" },
-  { id: "jt_carne_porco",        label: "Carne de Porco Lombo",     emoji: "🥩" },
-  { id: "jt_patinho_moido",      label: "Patinho Moído",            emoji: "🥩" },
-  { id: "jt_peixe",              label: "Peixe",                    emoji: "🐟" },
-  { id: "jt_salada_alface_tomate", label: "Salada de Alface e Tomate", emoji: "🍅" },
-  { id: "jt_salada_alface",      label: "Salada de Alface",         emoji: "🥗" },
-  { id: "jt_salada_legumes",     label: "Salada de Legumes",        emoji: "🥗" },
+const FRUTAS: Item[] = [
+  { id: "fruta_banana", label: "Banana", emoji: "🍌" },
+  { id: "fruta_maca", label: "Maçã", emoji: "🍎" },
+  { id: "fruta_mamao", label: "Mamão", emoji: "🍈" },
+  { id: "fruta_laranja", label: "Laranja", emoji: "🍊" },
+  { id: "fruta_abacaxi", label: "Abacaxi", emoji: "🍍" },
+  { id: "fruta_morango", label: "Morango", emoji: "🍓" },
+  { id: "fruta_melancia", label: "Melancia", emoji: "🍉" },
+  { id: "fruta_melao", label: "Melão", emoji: "🍈" },
+  { id: "fruta_pera", label: "Pera", emoji: "🍐" },
+  { id: "fruta_uva", label: "Uva", emoji: "🍇" },
 ];
-
-const LANCHE_MANHA = [
-  { id: "lm_maca",               label: "Maçã",                     emoji: "🍎" },
-  { id: "lm_banana",             label: "Banana",                   emoji: "🍌" },
-  { id: "lm_laranja",            label: "Laranja",                  emoji: "🍊" },
-  { id: "lm_abacaxi",            label: "Abacaxi",                  emoji: "🍍" },
-  { id: "lm_mamao",              label: "Mamão",                    emoji: "🍈" },
-  { id: "lm_morango",            label: "Morango",                  emoji: "🍓" },
-  { id: "lm_melancia",           label: "Melancia",                 emoji: "🍉" },
-  { id: "lm_melao",              label: "Melão",                    emoji: "🍈" },
-  { id: "lm_whey",               label: "Whey Protein",             emoji: "🥛" },
-  { id: "lm_biscoito_polvilho",  label: "Biscoito de Polvilho",     emoji: "🍪" },
-  { id: "lm_biscoito_agua_sal",  label: "Biscoito de Água e Sal",   emoji: "🍪" },
-  { id: "lm_biscoito_arroz",     label: "Biscoito de Arroz",        emoji: "🍪" },
+// Principais — almoço e jantar
+const CARB_PRINCIPAL: Item[] = [
+  { id: "carb_arroz", label: "Arroz", emoji: "🍚" },
+  { id: "carb_arroz_int", label: "Arroz integral", emoji: "🍚" },
+  { id: "carb_macarrao", label: "Macarrão", emoji: "🍝" },
+  { id: "carb_batata_doce", label: "Batata doce", emoji: "🍠" },
+  { id: "carb_mandioca", label: "Mandioca", emoji: "🥔" },
+  { id: "carb_inhame", label: "Inhame", emoji: "🥔" },
+  { id: "carb_batata", label: "Batata inglesa", emoji: "🥔" },
+  { id: "carb_abobora", label: "Abóbora", emoji: "🎃" },
+  { id: "carb_cuscuz", label: "Cuscuz", emoji: "🌽" },
+];
+const PROT_PRINCIPAL: Item[] = [
+  { id: "prot_frango", label: "Frango grelhado", emoji: "🍗" },
+  { id: "prot_frango_desf", label: "Frango desfiado", emoji: "🍗" },
+  { id: "prot_carne", label: "Carne", emoji: "🥩" },
+  { id: "prot_patinho", label: "Patinho", emoji: "🥩" },
+  { id: "prot_patinho_moido", label: "Patinho moído", emoji: "🥩" },
+  { id: "prot_porco", label: "Carne de porco", emoji: "🥩" },
+  { id: "prot_peixe", label: "Peixe", emoji: "🐟" },
+  { id: "prot_ovo", label: "Ovo", emoji: "🍳" },
+];
+const COMPLEMENTO: Item[] = [
+  { id: "leg_feijao_preto", label: "Feijão preto", emoji: "🫘" },
+  { id: "leg_feijao_carioca", label: "Feijão carioca", emoji: "🫘" },
+  { id: "leg_lentilha", label: "Lentilha", emoji: "🫘" },
+  { id: "leg_grao_bico", label: "Grão-de-bico", emoji: "🫛" },
+  { id: "leg_ervilha", label: "Ervilha", emoji: "🫛" },
+  { id: "fruta_banana", label: "Banana", emoji: "🍌" },
+  { id: "fruta_maca", label: "Maçã", emoji: "🍎" },
 ];
 
 const HEALTH_CONDITIONS = [
@@ -114,39 +87,46 @@ const HEALTH_CONDITIONS = [
 ];
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
-function FoodGrid({
-  title, emoji: titleEmoji, foods, selected, onToggle,
+type Grupo = { nome: string; emoji: string; itens: Item[]; opcional?: boolean };
+
+function MealSection({
+  title, emoji: titleEmoji, grupos, selected, onToggle,
 }: {
   title: string; emoji: string;
-  foods: { id: string; label: string; emoji: string }[];
+  grupos: Grupo[];
   selected: string[]; onToggle: (id: string) => void;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-bold text-gray-900">{title} {titleEmoji}</h3>
-        <span className={`text-sm font-semibold ${selected.length === 3 ? "text-[#43A047]" : "text-gray-400"}`}>{selected.length}/3</span>
-      </div>
-      <p className="text-xs text-gray-400 mb-4">Escolha 3 alimentos.</p>
-      <div className="grid grid-cols-3 gap-2">
-        {foods.map((food) => {
-          const sel = selected.includes(food.id);
-          return (
-            <button
-              key={food.id}
-              onClick={() => onToggle(food.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-medium transition-all text-left leading-tight
-                ${sel
-                  ? "border-[#43A047] bg-[#43A047]/10 text-[#1B5E20]"
-                  : "border-gray-200 bg-white text-gray-700 hover:border-[#43A047]/40 hover:bg-green-50/50"
-                }`}
-            >
-              <span className="text-sm flex-shrink-0">{food.emoji}</span>
-              <span>{food.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      <h3 className="text-base font-bold text-gray-900 mb-1">{title} {titleEmoji}</h3>
+      <p className="text-xs text-gray-400 mb-4">Escolha pelo menos 1 de cada — quanto mais marcar, mais variadas ficam as 3 opções.</p>
+      {grupos.map((g) => {
+        const n = selected.filter((id) => g.itens.some((i) => i.id === id)).length;
+        return (
+          <div key={g.nome} className="mb-4 last:mb-0">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-gray-600">{g.emoji} {g.nome}{g.opcional ? " (opcional)" : ""}</p>
+              <span className={`text-xs font-semibold ${n > 0 ? "text-[#43A047]" : "text-gray-300"}`}>{n} escolhido{n === 1 ? "" : "s"}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {g.itens.map((item) => {
+                const sel = selected.includes(item.id);
+                return (
+                  <button key={item.id} onClick={() => onToggle(item.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-medium transition-all text-left leading-tight
+                      ${sel
+                        ? "border-[#43A047] bg-[#43A047]/10 text-[#1B5E20]"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-[#43A047]/40 hover:bg-green-50/50"
+                      }`}>
+                    <span className="text-sm flex-shrink-0">{item.emoji}</span>
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -215,9 +195,7 @@ export default function Home() {
   useEffect(() => { trackViewContent(); }, []);
 
   const toggleFood = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, id: string) => {
-    if (list.includes(id)) { setList(list.filter((x) => x !== id)); return; }
-    if (list.length >= 3) { toast.info("Máximo de 3 por refeição. Desmarque um para trocar."); return; }
-    setList([...list, id]);
+    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   };
 
   const toggleHealth = (id: string) =>
@@ -233,15 +211,16 @@ export default function Home() {
       toast.error("Selecione o sexo (Masculino/Feminino) para o cálculo da dieta.");
       return;
     }
-    // Cada refeição precisa de exatamente 3 alimentos (o lanche da manhã só se não for pulado).
+    // Cada refeição precisa de ao menos 1 alimento de cada categoria obrigatória.
+    const tem = (list: string[], itens: Item[]) => itens.some((i) => list.includes(i.id));
     const faltando: string[] = [];
-    if (cafeManha.length !== 3) faltando.push("Café da manhã");
-    if (!skipLanche && lancheManha.length !== 3) faltando.push("Lanche da manhã");
-    if (almoco.length !== 3) faltando.push("Almoço");
-    if (lancheTarde.length !== 3) faltando.push("Café da tarde");
-    if (janta.length !== 3) faltando.push("Jantar");
+    if (!tem(cafeManha, CARB_LEVE) || !tem(cafeManha, PROT_LEVE) || !tem(cafeManha, FRUTAS)) faltando.push("Café da manhã");
+    if (!skipLanche && (!tem(lancheManha, PROT_LEVE) || !tem(lancheManha, FRUTAS))) faltando.push("Lanche da manhã");
+    if (!tem(almoco, CARB_PRINCIPAL) || !tem(almoco, PROT_PRINCIPAL) || !tem(almoco, COMPLEMENTO)) faltando.push("Almoço");
+    if (!tem(lancheTarde, CARB_LEVE) || !tem(lancheTarde, PROT_LEVE) || !tem(lancheTarde, FRUTAS)) faltando.push("Café da tarde");
+    if (!tem(janta, CARB_PRINCIPAL) || !tem(janta, PROT_PRINCIPAL) || !tem(janta, COMPLEMENTO)) faltando.push("Jantar");
     if (faltando.length) {
-      toast.error(`Escolha 3 alimentos em: ${faltando.join(", ")}.`);
+      toast.error(`Escolha ao menos 1 de cada categoria em: ${faltando.join(", ")}.`);
       return;
     }
     try {
@@ -408,46 +387,63 @@ export default function Home() {
           )}
         </div>
 
-        {/* ── 3. REFEIÇÕES (ordem: Café, Lanche Manhã, Almoço, Lanche Tarde, Janta) ── */}
-        <FoodGrid title="Café da Manhã" emoji="☕" foods={CAFE_MANHA} selected={cafeManha}
-          onToggle={(id) => toggleFood(cafeManha, setCafeManha, id)} />
+        {/* ── 3. REFEIÇÕES — escolha por categoria (Carboidrato / Proteína / Complemento) ── */}
+        <MealSection title="Café da Manhã" emoji="☕" selected={cafeManha}
+          onToggle={(id) => toggleFood(cafeManha, setCafeManha, id)}
+          grupos={[
+            { nome: "Carboidrato", emoji: "🍞", itens: CARB_LEVE },
+            { nome: "Proteína", emoji: "🍗", itens: PROT_LEVE },
+            { nome: "Fruta", emoji: "🍓", itens: FRUTAS },
+          ]} />
 
-        {/* Lanche da Manhã com opção de pular — vem logo após o Café */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-          <div className="flex items-center justify-between mb-1">
+        {/* Lanche da Manhã (com opção de pular) */}
+        {skipLanche ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold text-gray-900">Lanche da Manhã 🍎</h3>
-            <span className={`text-sm font-semibold ${!skipLanche && lancheManha.length === 3 ? "text-[#43A047]" : "text-gray-400"}`}>{skipLanche ? "—" : `${lancheManha.length}/3`}</span>
+            <button onClick={() => setSkipLanche(false)}
+              className="text-sm font-semibold text-[#43A047] underline underline-offset-2">Incluir</button>
           </div>
-          <p className="text-xs text-gray-400 mb-4">Escolha 3 alimentos.</p>
-          {!skipLanche && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {LANCHE_MANHA.map((food) => {
-                const sel = lancheManha.includes(food.id);
-                return (
-                  <button key={food.id} onClick={() => toggleFood(lancheManha, setLancheManha, food.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-medium transition-all text-left leading-tight
-                      ${sel ? "border-[#43A047] bg-[#43A047]/10 text-[#1B5E20]" : "border-gray-200 bg-white text-gray-700 hover:border-[#43A047]/40"}`}>
-                    <span className="text-sm flex-shrink-0">{food.emoji}</span>
-                    <span>{food.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <button onClick={() => setSkipLanche((v) => !v)}
-            className="w-full text-center text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">
-            {skipLanche ? "Quero incluir lanche da manhã" : "Não quero lanche da manhã"}
-          </button>
-        </div>
+        ) : (
+          <div>
+            <MealSection title="Lanche da Manhã" emoji="🍎" selected={lancheManha}
+              onToggle={(id) => toggleFood(lancheManha, setLancheManha, id)}
+              grupos={[
+                { nome: "Proteína", emoji: "🍗", itens: PROT_LEVE },
+                { nome: "Fruta", emoji: "🍓", itens: FRUTAS },
+                { nome: "Carboidrato", emoji: "🍞", itens: CARB_LEVE, opcional: true },
+              ]} />
+            <button onClick={() => setSkipLanche(true)}
+              className="w-full -mt-2 mb-4 text-center text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors">
+              Não quero lanche da manhã
+            </button>
+          </div>
+        )}
 
-        <FoodGrid title="Almoço" emoji="🍽️" foods={ALMOCO} selected={almoco}
-          onToggle={(id) => toggleFood(almoco, setAlmoco, id)} />
+        <MealSection title="Almoço" emoji="🍽️" selected={almoco}
+          onToggle={(id) => toggleFood(almoco, setAlmoco, id)}
+          grupos={[
+            { nome: "Carboidrato", emoji: "🍚", itens: CARB_PRINCIPAL },
+            { nome: "Proteína", emoji: "🥩", itens: PROT_PRINCIPAL },
+            { nome: "Complemento (feijão/fruta)", emoji: "🫘", itens: COMPLEMENTO },
+          ]} />
 
-        <FoodGrid title="Lanche da Tarde" emoji="🍪" foods={LANCHE_TARDE} selected={lancheTarde}
-          onToggle={(id) => toggleFood(lancheTarde, setLancheTarde, id)} />
+        <MealSection title="Café da Tarde" emoji="🍪" selected={lancheTarde}
+          onToggle={(id) => toggleFood(lancheTarde, setLancheTarde, id)}
+          grupos={[
+            { nome: "Carboidrato", emoji: "🍞", itens: CARB_LEVE },
+            { nome: "Proteína", emoji: "🍗", itens: PROT_LEVE },
+            { nome: "Fruta", emoji: "🍓", itens: FRUTAS },
+          ]} />
 
-        <FoodGrid title="Janta" emoji="🌙" foods={JANTA} selected={janta}
-          onToggle={(id) => toggleFood(janta, setJanta, id)} />
+        <MealSection title="Janta" emoji="🌙" selected={janta}
+          onToggle={(id) => toggleFood(janta, setJanta, id)}
+          grupos={[
+            { nome: "Carboidrato", emoji: "🍚", itens: CARB_PRINCIPAL },
+            { nome: "Proteína", emoji: "🥩", itens: PROT_PRINCIPAL },
+            { nome: "Complemento (feijão/fruta)", emoji: "🫘", itens: COMPLEMENTO },
+          ]} />
+
+        {/* A salada entra como observação "à vontade" na dieta gerada (almoço e jantar). */}
 
         {/* ── 4. INFORMAÇÕES DE ROTINA ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">

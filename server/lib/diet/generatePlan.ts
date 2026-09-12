@@ -7,7 +7,7 @@
 import { calcularMetas, type PerfilNutri } from "./engine";
 import { REF_KCAL, REF_REFEICOES, REF_SUBS, type RefItem, type RefOpcao } from "./reference";
 import {
-  alimento, alimentosDoId, filtrarPorRestricoes, passaRestricoes, substituicoesDe,
+  alimento, alimentosDoId, ehLeguminosa, filtrarPorRestricoes, passaRestricoes, substituicoesDe,
   type Alimento, type Categoria, type Restricao,
 } from "./foods";
 
@@ -99,7 +99,9 @@ function montarOpcaoCliente(
   // adicionados já entram dimensionados perto do alvo (bom ponto de partida).
   const kcalAtual = () => ents.reduce((s, e) => s + (e.fixo ? 0 : (e.a.kcal * e.g) / 100), 0);
   const temProt = base.some((a) => a.cat === "proteina");
-  const temCarb = base.some((a) => a.cat === "carboidrato");
+  // Fruta também é fonte de carboidrato → "proteína + fruta" (ex.: lanche) não
+  // precisa ganhar um amido extra.
+  const temCarb = base.some((a) => a.cat === "carboidrato" || a.cat === "fruta");
   if (!temProt) {
     const p = pickPadrao("proteina", leve ? PROT_LEVE : undefined);
     if (p && p.p > 0) ents.push({ a: p, g: arred5(Math.min(Math.max((targetProt / p.p) * 100, 20), leve ? CAP_PROT_LEVE : CAP_PROT_PRINCIPAL)) });
@@ -218,6 +220,13 @@ function refOpcaoToOption(op: RefOpcao, alvoKcal: number, alvoProt: number): Opt
   return { foods, kcal: Math.round(kcal), protein: Math.round(protein), obs: op.obs };
 }
 
+// Remove alimentos repetidos (por nome), preservando a ordem.
+function dedupAlimentos(arr: Alimento[]): Alimento[] {
+  const m = new Map<string, Alimento>();
+  for (const a of arr) if (!m.has(a.nome)) m.set(a.nome, a);
+  return Array.from(m.values());
+}
+
 export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null, selecoes?: Selecoes, horarios?: string | null): PlanData {
   const metas = calcularMetas(perfil);
   const restr = restricoesDe(healthConditions);
@@ -236,17 +245,32 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
     const leve = ref.key === "cafe_manha" || ref.key === "lanche_tarde";
     const refOptions = ref.opcoes.map((op) => refOpcaoToOption(op, alvo, alvoProt));
 
-    // OPÇÃO 1 = o PRATO do cliente: TODOS os alimentos que ele marcou nesta
-    // refeição, montados juntos (fiel ao quiz). Só completa se faltar um macro
-    // inteiro (ex.: escolheu só carboidrato → adiciona uma proteína).
-    // As Opções 2 e 3 = alternativas da referência (variedade).
+    // NOVO MODELO (PDF): o cliente marca VÁRIOS alimentos por categoria; o sistema
+    // MONTA até 3 opções variadas e equivalentes, cada uma = 1 carboidrato +
+    // 1 proteína + 1 complemento (fruta/leguminosa). Máx. 1 carboidrato principal
+    // por opção (leguminosa é categoria à parte). Sem repetir a mesma combinação.
     const ids = selecoes?.[ref.key] ?? [];
-    const escolhidos = ids
-      .flatMap((id) => alimentosDoId(id))
-      .filter((a) => passaRestricoes(a, restr));
-    const clientOptions: Option[] = escolhidos.length
-      ? [montarOpcaoCliente(escolhidos, alvo, alvoProt, leve, restr, mi)]
-      : [];
+    const pool = dedupAlimentos(ids.flatMap((id) => alimentosDoId(id)).filter((a) => passaRestricoes(a, restr)));
+    const carbs = pool.filter((a) => a.cat === "carboidrato" && !ehLeguminosa(a));
+    const prots = pool.filter((a) => a.cat === "proteina");
+    const frutas = pool.filter((a) => a.cat === "fruta");
+    const legs = pool.filter((a) => ehLeguminosa(a));
+    // Complemento: café/lanche/tarde → fruta; almoço/jantar → leguminosa (ou fruta).
+    const compls = ref.key === "almoco" || ref.key === "janta" ? [...legs, ...frutas] : frutas;
+
+    const nCombos = Math.min(3, Math.max(carbs.length, prots.length, compls.length));
+    const clientOptions: Option[] = [];
+    const combosVistos = new Set<string>();
+    for (let i = 0; i < nCombos; i++) {
+      const base: Alimento[] = [];
+      if (carbs.length) base.push(carbs[i % carbs.length]);
+      if (prots.length) base.push(prots[i % prots.length]);
+      if (compls.length) base.push(compls[i % compls.length]);
+      const chave = base.map((a) => a.nome).sort().join("|");
+      if (!base.length || combosVistos.has(chave)) continue; // não repete a mesma combinação
+      combosVistos.add(chave);
+      clientOptions.push(montarOpcaoCliente(base, alvo, alvoProt, leve, restr, mi + i));
+    }
 
     const options: Option[] = [...clientOptions, ...refOptions];
     // Regra 2: EXATAMENTE 3 opções. Completa com opções da base se faltar.

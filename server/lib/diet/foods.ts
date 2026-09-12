@@ -172,7 +172,64 @@ export const CATALOGO: Record<string, string[]> = {
   salada_alface_tomate: ["Salada de alface e tomate"],
   salada_alface: ["Salada de alface"],
   salada_legumes: ["Salada de legumes"],
+
+  // ── Seleção por CATEGORIA (novo modelo: Carboidrato / Proteína / Complemento) ──
+  // Carboidratos principais e leves
+  carb_arroz: ["Arroz branco cozido"],
+  carb_arroz_int: ["Arroz integral cozido"],
+  carb_macarrao: ["Macarrão cozido"],
+  carb_batata_doce: ["Batata doce cozida"],
+  carb_mandioca: ["Mandioca cozida"],
+  carb_inhame: ["Inhame cozido"],
+  carb_batata: ["Batata inglesa cozida"],
+  carb_abobora: ["Abóbora cozida"],
+  carb_cuscuz: ["Cuscuz de milho"],
+  carb_pao: ["Pão de forma"],
+  carb_pao_frances: ["Pão francês"],
+  carb_tapioca: ["Tapioca"],
+  carb_pao_queijo: ["Pão de queijo"],
+  carb_aveia: ["Aveia em flocos"],
+  carb_biscoito: ["Biscoito de água e sal"],
+  // Proteínas
+  prot_frango: ["Frango grelhado"],
+  prot_frango_desf: ["Frango desfiado"],
+  prot_carne: ["Carne bovina assada"],
+  prot_patinho: ["Patinho grelhado"],
+  prot_patinho_moido: ["Patinho moído"],
+  prot_porco: ["Carne de porco (lombo)"],
+  prot_peixe: ["Peixe (tilápia)"],
+  prot_ovo: ["Ovo"],
+  prot_queijo: ["Queijo muçarela"],
+  prot_presunto: ["Presunto magro"],
+  prot_iogurte: ["Iogurte natural desnatado"],
+  prot_whey: ["Whey protein"],
+  prot_ricota: ["Ricota"],
+  prot_minas: ["Queijo minas frescal"],
+  // Frutas
+  fruta_banana: ["Banana prata"],
+  fruta_maca: ["Maçã"],
+  fruta_mamao: ["Mamão"],
+  fruta_laranja: ["Laranja"],
+  fruta_abacaxi: ["Abacaxi"],
+  fruta_morango: ["Morango"],
+  fruta_melancia: ["Melancia"],
+  fruta_melao: ["Melão"],
+  fruta_pera: ["Pera"],
+  fruta_uva: ["Uva"],
+  // Leguminosas (complemento — não contam como carboidrato principal)
+  leg_feijao_preto: ["Feijão preto cozido"],
+  leg_feijao_carioca: ["Feijão carioca"],
+  leg_lentilha: ["Lentilha"],
+  leg_grao_bico: ["Grão-de-bico"],
+  leg_ervilha: ["Ervilha"],
 };
+
+// Nomes de leguminosas (categoria à parte do carboidrato principal — PDF secção 5).
+export const LEGUMINOSAS = new Set<string>([
+  "Feijão preto cozido", "Feijão preto", "Feijão carioca", "Feijão verde",
+  "Feijão de corda/fradinho", "Lentilha", "Grão-de-bico", "Ervilha", "Baião de dois", "Soja",
+]);
+export const ehLeguminosa = (a: Alimento) => LEGUMINOSAS.has(a.nome);
 
 /** Resolve um id do quiz (com prefixo cm_/al_/lt_/jt_/lm_) para alimentos da base. */
 export function alimentosDoId(id: string): Alimento[] {
