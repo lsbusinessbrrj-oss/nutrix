@@ -13,8 +13,19 @@ import {
 
 interface Sub { name: string; quantity: string }
 interface FoodItem { name: string; quantity: string; substituicoes: Sub[] }
-interface Option { foods: FoodItem[]; kcal: number; protein: number; obs?: string; livre?: boolean }
-interface Meal { name: string; time: string; calories: number; protein: number; options: Option[] }
+interface Option { foods: FoodItem[]; kcal: number; protein: number; obs?: string }
+interface Meal { name: string; time: string; calories: number; protein: number; options: Option[]; nota?: string }
+
+// Horários aproximados por preset escolhido no quiz (mealTimes). Aplicados na dieta.
+const HORARIOS: Record<string, Record<string, string>> = {
+  manha_cedo: { cafe_manha: "06:00", lanche_manha: "09:00", almoco: "11:00", lanche_tarde: "15:00", janta: "18:00" },
+  cafe7:      { cafe_manha: "07:00", lanche_manha: "10:00", almoco: "12:00", lanche_tarde: "16:00", janta: "19:00" },
+  cafe8:      { cafe_manha: "08:00", lanche_manha: "10:30", almoco: "13:00", lanche_tarde: "16:30", janta: "20:00" },
+  cafe9:      { cafe_manha: "09:00", lanche_manha: "11:00", almoco: "14:00", lanche_tarde: "17:30", janta: "21:00" },
+  mais_tarde: { cafe_manha: "10:00", lanche_manha: "12:00", almoco: "14:00", lanche_tarde: "18:00", janta: "22:00" },
+};
+
+const NOTA_SALADA = "Salada à vontade (folhas e legumes crus: alface, rúcula, tomate, pepino, cenoura, cebola) — não precisa pesar. Tempere com limão, vinagre, sal e pouco azeite.";
 export interface ResumoLinha { opcao: number; kcal: number; protein: number; pctKcal: number; pctProt: number }
 export interface PlanData {
   totalCalories: number; proteinTarget: number; waterMl: number;
@@ -207,16 +218,7 @@ function refOpcaoToOption(op: RefOpcao, alvoKcal: number, alvoProt: number): Opt
   return { foods, kcal: Math.round(kcal), protein: Math.round(protein), obs: op.obs };
 }
 
-// 4ª opção fixa do almoço e do jantar: salada à vontade (sem pesar, kcal desprezível).
-function opcaoSaladaLivre(): Option {
-  return {
-    foods: [{ name: "Salada à vontade", quantity: "alface, rúcula, tomate, pepino, cenoura, cebola", substituicoes: [] }],
-    kcal: 0, protein: 0, livre: true,
-    obs: "Folhas e legumes crus à vontade — não precisa pesar. Tempere com limão, vinagre, sal e pouco azeite.",
-  };
-}
-
-export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null, selecoes?: Selecoes): PlanData {
+export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null, selecoes?: Selecoes, horarios?: string | null): PlanData {
   const metas = calcularMetas(perfil);
   const restr = restricoesDe(healthConditions);
 
@@ -252,10 +254,12 @@ export function gerarPlano(perfil: PerfilNutri, healthConditions?: string | null
     while (options.length < 3) options.push(montarOpcaoCliente([], alvo, alvoProt, leve, restr, seed++));
     options.length = 3;
 
-    // Almoço e jantar ganham uma 4ª opção fixa: salada à vontade.
-    if (ref.key === "almoco" || ref.key === "janta") options.push(opcaoSaladaLivre());
+    // Horário aproximado escolhido no quiz (senão o padrão da referência).
+    const time = (horarios && HORARIOS[horarios]?.[ref.key]) || ref.time;
+    // Almoço e jantar: salada à vontade vira OBSERVAÇÃO (não é 4ª opção).
+    const nota = ref.key === "almoco" || ref.key === "janta" ? NOTA_SALADA : undefined;
 
-    return { name: ref.name, time: ref.time, calories: Math.round(alvo), protein: Math.round(alvoProt), options };
+    return { name: ref.name, time, calories: Math.round(alvo), protein: Math.round(alvoProt), options, nota };
   });
 
   // Regras 14/15: somatório diário de cada linha de opção (1, 2 e 3) vs meta.
@@ -289,17 +293,17 @@ export function validarPlano(plano: PlanData): ValidacaoItem[] {
   const v: ValidacaoItem[] = [];
   const pct = (x: number, base: number) => (base > 0 ? Math.abs(x - base) / base : 0);
 
-  // Regra 2 — exatamente 3 opções que "fecham a conta" (a salada à vontade é extra).
-  const fora3 = plano.meals.filter((m) => m.options.filter((o) => !o.livre).length !== 3).map((m) => m.name);
+  // Regra 2 — exatamente 3 opções.
+  const fora3 = plano.meals.filter((m) => m.options.length !== 3).map((m) => m.name);
   v.push({ regra: "3 opções por refeição", ok: fora3.length === 0, detalhe: fora3.length ? `refeições com nº errado: ${fora3.join(", ")}` : "todas com 3 opções" });
 
-  // Regra 5/14 — toda opção com calorias e proteína calculadas (exceto a salada livre).
-  const semMacro = plano.meals.some((m) => m.options.some((o) => !o.livre && (!(o.kcal > 0) || o.protein == null)));
+  // Regra 5/14 — toda opção com calorias e proteína calculadas.
+  const semMacro = plano.meals.some((m) => m.options.some((o) => !(o.kcal > 0) || o.protein == null));
   v.push({ regra: "kcal e proteína calculadas", ok: !semMacro, detalhe: semMacro ? "há opção sem kcal/proteína" : "ok" });
 
-  // Regra 3 — opções da mesma refeição próximas em calorias (±12% do alvo; salada livre não conta).
+  // Regra 3 — opções da mesma refeição próximas em calorias (±12% do alvo).
   const desK: string[] = [];
-  for (const m of plano.meals) for (const o of m.options) if (!o.livre && pct(o.kcal, m.calories) > 0.12) desK.push(`${m.name} (${o.kcal} vs ${m.calories})`);
+  for (const m of plano.meals) for (const o of m.options) if (pct(o.kcal, m.calories) > 0.12) desK.push(`${m.name} (${o.kcal} vs ${m.calories})`);
   v.push({ regra: "opções equivalentes em calorias (±12%)", ok: desK.length === 0, detalhe: desK.length ? desK.join("; ") : "ok" });
 
   // Regra 8 — toda substituição com quantidade.

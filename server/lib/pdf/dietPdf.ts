@@ -63,6 +63,7 @@ const s = StyleSheet.create({
   itemQtd: { width: "38%", textAlign: "right", color: C.cinza },
   subLine: { fontSize: 7.5, color: C.cinza, marginLeft: 6, marginBottom: 1.5 },
   obs: { fontSize: 8.5, color: C.cinza, marginTop: 5, lineHeight: 1.35 },
+  notaSalada: { fontSize: 8.5, color: C.verde, marginTop: 4, marginBottom: 2, lineHeight: 1.35, fontFamily: "Helvetica-Bold" },
   rodape: { position: "absolute", bottom: 14, left: 30, right: 30, fontSize: 7, color: C.cinza, textAlign: "center", borderTop: `0.5 solid ${C.borda}`, paddingTop: 5 },
 });
 
@@ -289,10 +290,11 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
         ),
         ...meal.options.map((opt, oi) =>
           h(View, { key: oi, minPresenceAhead: 34 },
-            h(Text, { style: s.optTitle }, opt.livre ? `Opção ${oi + 1} — Salada à vontade` : `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
+            h(Text, { style: s.optTitle }, `Opção ${oi + 1} — ${opt.kcal} kcal | ${opt.protein} g proteína`),
             ...opt.foods.map((f) => itemRow(f.name, f.quantity, f.substituicoes)),
           ),
         ),
+        meal.nota ? h(Text, { style: s.notaSalada }, "🥗 " + meal.nota) : null,
       ),
     ),
 

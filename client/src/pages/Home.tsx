@@ -184,7 +184,6 @@ export default function Home() {
   const [age, setAge]         = useState("");
   const [sex, setSex]         = useState<"male" | "female" | "">("");
   const [goal, setGoal]       = useState("");
-  const [dailyCalories, setDailyCalories] = useState("");
   const [mealTimes, setMealTimes]         = useState("");
 
   // Saúde
@@ -249,7 +248,7 @@ export default function Home() {
       await saveFormMutation.mutateAsync({
         weight: parseFloat(weight), height: parseFloat(height), age: parseInt(age),
         sex: sex || undefined, goal: goal || undefined,
-        dailyCalories: dailyCalories || undefined, mealTimes: mealTimes || undefined,
+        mealTimes: mealTimes || undefined,
         activityLevel: activityLevel || undefined,
         wantsWorkout: wantsWorkout === "sim",
         wantsChocolate: wantsChocolate === "sim",
@@ -355,18 +354,13 @@ export default function Home() {
                 { value: "maintenance",    label: "Manutenção do Peso" },
               ]}
             />
-            <SelectField placeholder="Calorias diárias 🔥" value={dailyCalories} onChange={setDailyCalories}
+            <SelectField placeholder="Horários aproximados das Refeições" value={mealTimes} onChange={setMealTimes}
               options={[
-                { value: "nao_sei", label: "Não sei dizer" },
-              ]}
-            />
-            <SelectField placeholder="Horários para Refeição" value={mealTimes} onChange={setMealTimes}
-              options={[
-                { value: "cafe7_almoco12_janta19",  label: "Café 7h | Almoço 12h | Janta 19h" },
-                { value: "cafe8_almoco13_janta20",  label: "Café 8h | Almoço 13h | Janta 20h" },
-                { value: "cafe6_almoco11_janta18",  label: "Café 6h | Almoço 11h | Janta 18h" },
-                { value: "cafe9_almoco14_janta21",  label: "Café 9h | Almoço 14h | Janta 21h" },
-                { value: "personalizado",           label: "Personalizado (definir depois)" },
+                { value: "manha_cedo", label: "Café 6h · Almoço 11h · Janta 18h" },
+                { value: "cafe7",      label: "Café 7h · Almoço 12h · Janta 19h" },
+                { value: "cafe8",      label: "Café 8h · Almoço 13h · Janta 20h" },
+                { value: "cafe9",      label: "Café 9h · Almoço 14h · Janta 21h" },
+                { value: "mais_tarde", label: "Café 10h · Almoço 14h · Janta 22h" },
               ]}
             />
 

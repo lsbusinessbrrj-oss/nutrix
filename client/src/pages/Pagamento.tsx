@@ -18,13 +18,37 @@ export default function Pagamento() {
   const [pix, setPix] = useState<any>(null);
   const [sucesso, setSucesso] = useState<any>(null);
 
+  const utils = trpc.useUtils();
   const criarPix = trpc.payment.criarPix.useMutation();
   const criarAssinatura = trpc.payment.criarAssinatura.useMutation();
+  const confirmarPix = trpc.payment.confirmarPix.useMutation();
   const simular = trpc.payment.simularAprovacao.useMutation();
 
   useEffect(() => { if (!loading && !isAuthenticated) navigate("/login"); }, [loading, isAuthenticated, navigate]);
   // Início do checkout (rastreamento de tráfego pago).
   useEffect(() => { trackInitiateCheckout(); }, []);
+
+  // Assim que o Pix é gerado, fica checando no Mercado Pago; quando aprovar,
+  // redireciona sozinho pra dieta (o cliente não precisa fazer nada na tela).
+  useEffect(() => {
+    const paymentId = pix?.paymentId;
+    if (!paymentId || pix?.simulado || sucesso) return;
+    let parado = false;
+    const iv = setInterval(async () => {
+      try {
+        const r = await confirmarPix.mutateAsync({ paymentId });
+        if (!parado && r?.aprovado) {
+          clearInterval(iv);
+          trackPurchase();
+          toast.success("Pagamento confirmado! Abrindo sua dieta...");
+          await utils.auth.me.invalidate().catch(() => {});
+          navigate("/dietas");
+        }
+      } catch { /* ainda pendente — segue tentando */ }
+    }, 4000);
+    return () => { parado = true; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pix, sucesso]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{ background: "#F7F8F7" }}><Loader2 className="w-8 h-8 animate-spin text-[#43A047]" /></div>;
   if (!isAuthenticated) return null;
@@ -167,6 +191,12 @@ export default function Pagamento() {
                   <Check size={16} /> Copiar código Pix
                 </button>
                 <p className="text-center text-[11px] text-gray-400">No seu banco, escolha <b>“Pix Copia e Cola”</b> e cole o código.</p>
+                {!pix.simulado && (
+                  <div className="flex items-center justify-center gap-2 pt-1 text-sm" style={{ color: "#166534" }}>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Aguardando o pagamento… assim que cair, sua dieta abre automaticamente.</span>
+                  </div>
+                )}
                 {pix.simulado && (
                   <button onClick={liberar} disabled={simular.isPending}
                     className="w-full py-3 rounded-xl font-bold border-2 disabled:opacity-60" style={{ borderColor: "#166534", color: "#166534" }}>

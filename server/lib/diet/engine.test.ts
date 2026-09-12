@@ -36,14 +36,17 @@ describe("generatePlan — templates da referência", () => {
   it("tem as 5 refeições (com lanche da manhã)", () => {
     const plano = gerarPlano(homem87);
     expect(plano.meals.map((m) => m.name)).toEqual(["Café da manhã", "Lanche da manhã", "Almoço", "Café da Tarde", "Jantar"]);
-    // Jantar (e almoço) têm 4 opções: 3 que fecham a conta + salada à vontade.
+    // Todas as refeições têm 3 opções. Almoço/jantar trazem a salada como observação (nota).
     const jantar = plano.meals.find((m) => m.name === "Jantar")!;
-    expect(jantar.options).toHaveLength(4);
-    expect(jantar.options.filter((o) => !(o as any).livre)).toHaveLength(3);
-    expect((jantar.options[3] as any).livre).toBe(true);
-    expect(jantar.options[3].foods[0].name).toMatch(/salada/i);
-    // Café da manhã (refeição sem salada extra) continua com 3.
-    expect(plano.meals.find((m) => m.name === "Café da manhã")!.options).toHaveLength(3);
+    expect(jantar.options).toHaveLength(3);
+    expect(jantar.nota).toMatch(/salada/i);
+    expect(plano.meals.find((m) => m.name === "Café da manhã")!.nota).toBeUndefined();
+  });
+
+  it("horários escolhidos no quiz vão para a dieta", () => {
+    const plano = gerarPlano(homem87, null, undefined, "cafe7");
+    expect(plano.meals.find((m) => m.name === "Almoço")!.time).toBe("12:00");
+    expect(plano.meals.find((m) => m.name === "Jantar")!.time).toBe("19:00");
   });
 
   it("Café da manhã Op1 = ovo + pão + requeijão + banana + aveia + café", () => {

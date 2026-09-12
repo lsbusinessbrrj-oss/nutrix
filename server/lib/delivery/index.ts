@@ -35,7 +35,7 @@ async function construirPdf(user: UserRow): Promise<{ nome: string; pdf: Buffer;
       idade: Number(user.age), objetivo: (user.goal ?? "maintenance") as Objetivo,
       atividade: (user.activityLevel ?? "moderado") as Atividade,
     },
-    (user as any).healthConditions, selecoes,
+    (user as any).healthConditions, selecoes, (user as any).mealTimes,
   );
   const nome = user.name ?? "Cliente";
   const cliente = {

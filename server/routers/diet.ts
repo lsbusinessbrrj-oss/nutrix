@@ -78,6 +78,7 @@ export const dietRouter = router({
       },
       (user as any).healthConditions,
       selecoes,
+      (user as any).mealTimes,
     );
 
     await db.createDietPlan(ctx.user.id, planData.totalCalories, planData);

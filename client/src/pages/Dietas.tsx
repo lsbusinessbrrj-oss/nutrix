@@ -289,6 +289,13 @@ function MealCard({ meal }: { meal: any }) {
           <span className="font-semibold text-gray-600">Observação: </span>{options[opt].obs}
         </p>
       )}
+
+      {meal.nota && (
+        <div className="mt-4 flex items-start gap-2 rounded-xl p-3" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+          <span className="text-base leading-none">🥗</span>
+          <p className="text-xs leading-relaxed" style={{ color: "#166534" }}>{meal.nota}</p>
+        </div>
+      )}
     </div>
   );
 }
