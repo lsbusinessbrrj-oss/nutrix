@@ -281,9 +281,9 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
     fundo(),
     h(View, { style: { marginBottom: 6, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
       h(Text, { style: { fontSize: 13, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Suas refeições — escolha 1 opção por refeição")),
-    // Quebras controladas: p2 = café+lanche manhã; p3 = almoço+café tarde; p4 = jantar+resumo.
+    // UMA refeição por página (mais organizado): a 1ª fica com o título; as demais quebram.
     ...plano.meals.map((meal, mi) =>
-      h(View, { key: mi, break: mi === 2 || mi === 4, style: { marginBottom: 8 } },
+      h(View, { key: mi, break: mi > 0, style: { marginBottom: 8 } },
         h(View, { style: s.mealTitle },
           iconeRefeicao(mi),
           h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, `${meal.time} · ${meal.name}`),
@@ -298,15 +298,17 @@ export function DietDocument(props: { cliente: ClientePdf; plano: PlanData }) {
       ),
     ),
 
-    // Quadro resumo das opções (regras 14/15).
-    resumoTabela(plano),
-
-    // Orientação nutricional.
-    h(View, { minPresenceAhead: 80 },
-      h(View, { style: { marginTop: 12, marginBottom: 4, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
-        h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Orientação nutricional")),
-      h(View, { style: { ...s.header, marginTop: 4 } },
-        ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
+    // Resumo + orientação numa página própria (fecha o material de forma limpa).
+    h(View, { break: true },
+      // Quadro resumo das opções (regras 14/15).
+      resumoTabela(plano),
+      // Orientação nutricional.
+      h(View, { minPresenceAhead: 80 },
+        h(View, { style: { marginTop: 12, marginBottom: 4, borderBottom: `1.2 solid ${C.verde2}`, paddingBottom: 3 } },
+          h(Text, { style: { fontSize: 12, color: C.verde, fontFamily: "Helvetica-Bold" } }, "Orientação nutricional")),
+        h(View, { style: { ...s.header, marginTop: 4 } },
+          ...plano.orientacao.map((o, i) => h(Text, { key: i, style: s.obs }, "• " + o)),
+        ),
       ),
     ),
     rodape(cliente.nome, dataAval),
